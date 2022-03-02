@@ -15,6 +15,7 @@ class Tile(object):
         self.font = ('Helvetica',
         36, 'bold')
         self.length = length
+        self.color = "light" if color == "#aad751" else "dark"
 
         self.x = self.col * self.length
         self.y = self.row * self.length
@@ -39,7 +40,7 @@ class Tile(object):
 
 
     def clear(self):
-        self.canvas.delete(self.tile_id)
+        self.canvas.itemconfig(self.tile_id, fill = "#E5C29F" if self.color == "light" else "#D7B899")
         if self.type == "near_bomb":
             self.text_id = self.canvas.create_text(
                 self.x + self.length / 2, self.y + self.length / 2, 
@@ -77,7 +78,6 @@ class Minesweeper(tk.Frame):
         self.canvas = tk.Canvas(
             root, 
             width = self.board_length, height = self.board_width, 
-            bg = "#d7b899", 
             highlightthickness = 0)
         self.canvas.tag_bind("tile", "<Button-1>", self._on_tile_click) # adds tile click event
         self._create_minefield()
@@ -85,12 +85,14 @@ class Minesweeper(tk.Frame):
 
 
     def _recursive_tile_clear(self, tile):
+        tile_type = tile.type
         tile.clear()
-        for neighbor_coords in tile.get_4_direction_neighbors():
-            if -1 not in neighbor_coords and 10 not in neighbor_coords:
-                neighbor = self.minefield[neighbor_coords[0]][neighbor_coords[1]]
-                if neighbor.type == "blank" or neighbor.type == "near_bomb":
-                    self._recursive_tile_clear(neighbor)
+        if tile_type != "near_bomb":
+            for neighbor_coords in tile.get_4_direction_neighbors():
+                if -1 not in neighbor_coords and 10 not in neighbor_coords:
+                    neighbor = self.minefield[neighbor_coords[0]][neighbor_coords[1]]
+                    if neighbor.type == "blank" or neighbor.type == "near_bomb":
+                        self._recursive_tile_clear(neighbor)
 
 
     def _on_tile_click(self, event):
