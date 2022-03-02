@@ -53,12 +53,12 @@ class Minesweeper(tk.Frame):
 
 
     def _recursive_tile_clear(self, tile):
+        tile.clear()
         for neighbor_coords in tile.get_neighbors():
             if -1 not in neighbor_coords and 10 not in neighbor_coords:
-                neighbor = self.minefield[neighbor_coords[0], neighbor_coords[1]]
+                neighbor = self.minefield[neighbor_coords[0]][neighbor_coords[1]]
                 if neighbor.type != "bomb" and neighbor.type != "cleared":
-                    tile.clear()
-                    _recursive_tile_clear(neighbor)
+                    self._recursive_tile_clear(neighbor)
 
 
 
