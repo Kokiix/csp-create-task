@@ -30,11 +30,12 @@ class Tile(object):
 
 
     def display_bombs_near(self):
-        self.canvas.create_text(
+        self.text_id = self.canvas.create_text(
             self.x + self.length / 2, self.y + self.length / 2, 
             text = str(self.bombs_near),
             fill = self._get_distance_color(),
-            font = self.font)
+            font = self.font,
+            tags = "bomb_number")
 
 
 
@@ -49,6 +50,8 @@ class Tile(object):
 
     def clear(self):
         self.canvas.delete(self.tile_id)
+        if self.text_id != None:
+            self.canvas.delete(self.text_id)
         self.type = "cleared"
 
 
@@ -82,6 +85,7 @@ class Minesweeper(tk.Frame):
             bg = "#d7b899", 
             highlightthickness = 0)
         self.canvas.tag_bind("tile", "<Button-1>", self._on_tile_click) # adds tile click event
+        self.canvas.tag_bind("bomb_number", "<Button-1>", self._on_tile_click)
         self._create_minefield()
 
 
@@ -93,7 +97,7 @@ class Minesweeper(tk.Frame):
                 neighbor = self.minefield[neighbor_coords[0]][neighbor_coords[1]]
                 if neighbor.type == "blank":
                     self._recursive_tile_clear(neighbor)
-                elif neighbor.type == "near_bomb":
+                elif neighbor.type == "near_bomb" and neighbor.text_id == None:
                     neighbor.display_bombs_near()
 
 
@@ -102,7 +106,7 @@ class Minesweeper(tk.Frame):
         tile_row = math.floor(event.y / self.tile_length)
         tile = self.minefield[tile_row][tile_column]
 
-        if tile.type == "blank":
+        if tile.type != "bomb":
             self._recursive_tile_clear(tile)
             self.canvas.pack()
 
@@ -123,7 +127,7 @@ class Minesweeper(tk.Frame):
         return Tile(
             self.canvas, 
             self.tile_length, 
-            fill_color if is_bomb else "#53131E", # debug outline
+            fill_color if is_bomb else "#FFF012", # debug outline
             "bomb" if not is_bomb else "blank",
             row, col)
 
@@ -133,13 +137,14 @@ class Minesweeper(tk.Frame):
         self.minefield = [[self._create_tile(row, col) for col in range(10)] for row in range(10)]
         for row in self.minefield:
             for tile in row:
-                for neighbor_coords in tile.get_8_direction_neighbors():
-                    if -1 not in neighbor_coords and 10 not in neighbor_coords: 
-                        neighbor = self.minefield[neighbor_coords[0]][neighbor_coords[1]]
-                        if neighbor.type == "bomb":
-                            tile.bombs_near += 1
-                if tile.bombs_near > 0:
-                    tile.type = "near_bomb"
+                if tile.type != "bomb":
+                    for neighbor_coords in tile.get_8_direction_neighbors():
+                        if -1 not in neighbor_coords and 10 not in neighbor_coords: 
+                            neighbor = self.minefield[neighbor_coords[0]][neighbor_coords[1]]
+                            if neighbor.type == "bomb":
+                                tile.bombs_near += 1
+                    if tile.bombs_near > 0:
+                        tile.type = "near_bomb"
 
 
 
