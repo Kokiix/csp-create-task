@@ -67,7 +67,6 @@ class Tile(object):
 
 
 
-# inherit from frame; gui setup
 class Minesweeper(tk.Frame):
     def __init__(self, parent):
         tk.Frame.__init__(self, parent)
@@ -77,10 +76,13 @@ class Minesweeper(tk.Frame):
         self.tile_length = self.board_length / 10
         self.canvas = tk.Canvas(
             root, 
-            width = self.board_length, height = self.board_width, 
+            width = self.board_width, height = self.board_length, 
             highlightthickness = 0)
-        self.canvas.tag_bind("tile", "<Button-1>", self._on_tile_click) # adds tile click event
-        self._create_minefield()
+        self.first_click_detector_id = 0
+        self.canvas.tag_bind("tile", "<Button-1>", self._on_tile_click)
+        self.canvas.tag_bind("first_click_setup", "<Button-1>", self._on_first_click)
+        self.minefield = [[self._create_tile(row, col) for col in range(10)] for row in range(10)]
+        self._setup_first_click_detector()
 
 
 
@@ -114,37 +116,52 @@ class Minesweeper(tk.Frame):
         color1 = "#aad751" if row % 2 == 0 else "#a2d149"
         color2 = "#aad751" if color1 == "#a2d149" else "#a2d149"
         fill_color = color1 if col % 2 == 0 else color2
-
-        # temporary bomb assignment for debug
-        is_bomb = False if r.random() < 0.10 else True
         
         return Tile(
             self.canvas, 
             self.tile_length, 
-            # fill_color if is_bomb else "#FFF012", # debug outline
             fill_color,
-            "bomb" if not is_bomb else "blank",
+            "blank",
             row, col)
+        
 
 
 
-    def _create_minefield(self):
-        self.minefield = [[self._create_tile(row, col) for col in range(10)] for row in range(10)]
-        for row in self.minefield:
-            for tile in row:
-                if tile.type != "bomb":
-                    for neighbor_coords in tile.get_8_direction_neighbors():
-                        if -1 not in neighbor_coords and 10 not in neighbor_coords: 
-                            neighbor = self.minefield[neighbor_coords[0]][neighbor_coords[1]]
-                            if neighbor.type == "bomb":
-                                tile.bombs_near += 1
-                    if tile.bombs_near > 0:
-                        tile.type = "near_bomb"
+    def _setup_first_click_detector(self):
+        self.first_click_detector_id = self.canvas.create_rectangle(
+            0, 0, self.board_width, self.board_length,
+            fill = "",
+            outline = "",
+            tags = "first_click_setup")
 
 
 
 
-# determines if this is imported module or module being run 
+    def _on_first_click(self, event):
+        first_tile_column = math.floor(event.x / self.tile_length)
+        first_tile_row = math.floor(event.y / self.tile_length)
+        first_tile = self.minefield[first_tile_row][first_tile_column]
+
+        for bomb_num in range(10):
+            bomb_tile = first_tile
+            while bomb_tile == first_tile:
+                bomb_tile = r.choice(r.choice(self.minefield))
+            bomb_tile.type == "bomb"
+
+            self.canvas.itemconfig(bomb_tile.tile_id, fill = "#FFF012")# DEBUG
+
+            for neighbor_coords in bomb_tile.get_8_direction_neighbors():
+                if -1 not in neighbor_coords and 10 not in neighbor_coords:
+                    neighbor = self.minefield[neighbor_coords[0]][neighbor_coords[1]]
+                    neighbor.bombs_near += 1
+                    neighbor.type = "near_bomb"
+
+        self.canvas.delete(self.first_click_detector_id)
+
+
+
+
+
 if __name__ == "__main__":
     root = tk.Tk()
 
