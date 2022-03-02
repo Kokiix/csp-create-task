@@ -21,7 +21,7 @@ class Minesweeper(tk.Frame):
 
 
 
-    def _clear_tile_row(self):
+    def _clear_blank_tiles(self):
         pass
 
 
@@ -31,7 +31,7 @@ class Minesweeper(tk.Frame):
         tile_id = self.minefield[tile_row][tile_column]
 
         if "clear" in self.canvas.gettags(tile_id):
-            self._clear_tile_row()
+            self._clear_blank_tiles()
 
 
     def _prepare_default_tile(self, row, col):
@@ -48,7 +48,7 @@ class Minesweeper(tk.Frame):
         tile_id = self.canvas.create_rectangle(
             x, y, x + self.tile_length, y + self.tile_length, 
             fill = fill_color if is_bomb else "#53131E", outline = "", tags = "tile") # bombs temporarily highlighted for debug
-        self.canvas.addtag_withtag("bomb" if not is_bomb else "clear", tile_id)
+        self.canvas.addtag_withtag("bomb" if not is_bomb else "blank", tile_id)
 
         return tile_id
 
