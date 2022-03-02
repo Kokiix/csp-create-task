@@ -106,4 +106,6 @@ if __name__ == "__main__":
     instance.pack(side="top", fill="both", expand=False)
     instance.canvas.pack()
 
+    root.title("Minesweeper!")
+    root.resizable(False, False)
     root.mainloop()
