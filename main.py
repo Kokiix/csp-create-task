@@ -23,6 +23,17 @@ class Tile(object):
 
 
 
+    def clear(self):
+        self.canvas.delete(self.tile_id)
+        self.type = "cleared"
+
+
+
+    def get_neighbors(self):
+        return [[self.row - 1, self.col], [self.row + 1, self.col], [self.row, self.col - 1], [self.row, self.col + 1]]
+
+
+
 
 # inherit from frame; gui setup
 class Minesweeper(tk.Frame):
@@ -41,26 +52,31 @@ class Minesweeper(tk.Frame):
 
 
 
-    def _clear_blank_tiles(self, tile_id, tile_column, tile_row):
-        pass
+    def _recursive_tile_clear(self, tile):
+        for neighbor_coords in tile.get_neighbors():
+            if -1 not in neighbor_coords and 10 not in neighbor_coords:
+                neighbor = self.minefield[neighbor_coords[0], neighbor_coords[1]]
+                if neighbor.type != "bomb" and neighbor.type != "cleared":
+                    tile.clear()
+                    _recursive_tile_clear(neighbor)
 
 
 
     def _on_tile_click(self, event):
         tile_column = math.floor(event.x / self.tile_length)
         tile_row = math.floor(event.y / self.tile_length)
-        tile_id = self.minefield[tile_row][tile_column]
+        tile = self.minefield[tile_row][tile_column]
 
-        if "blank" in self.canvas.gettags(tile_id):
-            self._clear_blank_tiles(tile_id, tile_column, tile_row)
+        if tile.type == "blank":
+            self._recursive_tile_clear(tile)
 
 
 
-    def _prepare_default_tile(self, row, col):
+    def _create_tile(self, row, col):
         x = col * self.tile_length
         y = row * self.tile_length
         
-        # swap colors in row & stagger colors between rows
+        # MAKE EASIER TO READ
         color1 = "#aad751" if row % 2 == 0 else "#a2d149"
         color2 = "#aad751" if color1 == "#a2d149" else "#a2d149"
         fill_color = color1 if col % 2 == 0 else color2
@@ -77,7 +93,7 @@ class Minesweeper(tk.Frame):
 
 
     def _create_minefield(self):
-        self.minefield = [[self._prepare_default_tile(row, col) for col in range(10)] for row in range(10)]
+        self.minefield = [[self._create_tile(row, col) for col in range(10)] for row in range(10)]
 
 
 
