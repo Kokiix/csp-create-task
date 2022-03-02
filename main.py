@@ -15,14 +15,23 @@ class Minesweeper(tk.Frame):
             bg = "#d7b899", 
             highlightthickness = 0)
         self.canvas.tag_bind("tile", "<Button-1>", self._on_tile_click) # adds tile click event
-
-        self.delete_list = []
         self._create_minefield()
 
 
 
-    def _clear_blank_tiles(self):
-        pass
+    def _clear_blank_tiles(self, tile_id, tile_column, tile_row):
+        self.canvas.delete(tile_id)
+        for i in range(-1 if tile_column > 0 else 1, 2 if tile_column < (len(self.minefield) - 1) else 0, 2):
+            scan_tile = self.minefield[tile_row][tile_column + i]
+            tags = self.canvas.gettags(scan_tile)
+            if len(tags) != 0 and "bomb" not in tags:
+                print(str(tile_row) + " " + str(tile_column + i))
+                self._clear_blank_tiles(scan_tile, tile_column + i, tile_row)
+        for i in range(-1 if tile_row > 0 else 1, 2 if tile_row < (len(self.minefield) - 1) else 0, 2):
+            scan_tile = self.minefield[tile_row + i][tile_column]
+            tags = self.canvas.gettags(scan_tile)
+            if len(tags) != 0 and "bomb" not in tags:
+                self._clear_blank_tiles(scan_tile, tile_column, tile_row + i)
 
 
     def _on_tile_click(self, event):
@@ -30,8 +39,8 @@ class Minesweeper(tk.Frame):
         tile_row = math.floor(event.y / self.tile_length)
         tile_id = self.minefield[tile_row][tile_column]
 
-        if "clear" in self.canvas.gettags(tile_id):
-            self._clear_blank_tiles()
+        if "blank" in self.canvas.gettags(tile_id):
+            self._clear_blank_tiles(tile_id, tile_column, tile_row)
 
 
     def _prepare_default_tile(self, row, col):
