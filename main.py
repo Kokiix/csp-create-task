@@ -68,9 +68,10 @@ class Tile(object):
 
 
 class Minesweeper(tk.Frame):
-    def __init__(self, parent, board_tile_width, board_tile_length, board_pixel_size):
+    def __init__(self, parent, board_tile_width, board_tile_length, mine_number, board_pixel_size):
         tk.Frame.__init__(self, parent)
 
+        self.mine_number = mine_number
         self.board_tile_width = board_tile_width
         self.board_tile_length = board_tile_length
         self.tile_length = board_pixel_size / board_tile_width
@@ -95,8 +96,8 @@ class Minesweeper(tk.Frame):
         if tile_type != "near_bomb":
             for neighbor_coords in tile.get_4_direction_neighbors():
                 if -1 not in neighbor_coords                        and \
-                    self.board_tile_width not in neighbor_coords    and \
-                    self.board_tile_length not in neighbor_coords:
+                    self.board_tile_width != neighbor_coords[1]     and \
+                    self.board_tile_length != neighbor_coords[0]:
 
                     neighbor = self.minefield[neighbor_coords[0]][neighbor_coords[1]]
                     if neighbor.type == "blank" or neighbor.type == "near_bomb":
@@ -148,24 +149,25 @@ class Minesweeper(tk.Frame):
         first_tile_row = math.floor(event.y / self.tile_length)
         first_tile = self.minefield[first_tile_row][first_tile_column]
 
-        average_tile_length = (self.board_tile_width + self.board_tile_length) / 5.5
-
-        for bomb_num in range(int(average_tile_length ** 2)):
+        # dynamic "easy" scaling is (avg. side length / 5.5) ** 2
+        for bomb_num in range(self.mine_number):
             bomb_tile = first_tile
             while bomb_tile == first_tile:
                 bomb_tile = r.choice(r.choice(self.minefield))
             bomb_tile.type = "bomb"
 
-            self.canvas.itemconfig(bomb_tile.tile_id, fill = "#FFF012")# DEBUG
+            self.canvas.itemconfig(bomb_tile.tile_id, fill = "#FFF012") # DEBUG
 
             for neighbor_coords in bomb_tile.get_8_direction_neighbors():
                 if -1 not in neighbor_coords                        and \
-                    self.board_tile_width not in neighbor_coords    and \
-                    self.board_tile_length not in neighbor_coords:
+                    self.board_tile_width != neighbor_coords[1]     and \
+                    self.board_tile_length != neighbor_coords[0]:
 
                     neighbor = self.minefield[neighbor_coords[0]][neighbor_coords[1]]
-                    neighbor.bombs_near += 1
-                    neighbor.type = "near_bomb"
+
+                    if neighbor.type != "bomb":
+                        neighbor.bombs_near += 1
+                        neighbor.type = "near_bomb"
 
         self.canvas.delete(self.first_click_detector_id)
         self._recursive_tile_clear(first_tile)
@@ -177,7 +179,8 @@ class Minesweeper(tk.Frame):
 if __name__ == "__main__":
     root = tk.Tk()
 
-    minesweeper = Minesweeper(root, 10, 8, 900)
+    minesweeper = Minesweeper(root, 10, 8, 10, 900) # easy
+    # minesweeper = Minesweeper(root, 18, 14, 40, 900) # medium
     minesweeper.pack(side="top", fill="both", expand=False)
     minesweeper.canvas.pack()
 
