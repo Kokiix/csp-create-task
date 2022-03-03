@@ -13,7 +13,7 @@ class Tile(object):
         self.col = col
         self.bombs_near = 0
         self.font = ('Helvetica',
-        36, 'bold')
+        int(length / 2), 'bold')
         self.length = length
         self.color = "light" if color == "#aad751" else "dark"
 
@@ -68,20 +68,23 @@ class Tile(object):
 
 
 class Minesweeper(tk.Frame):
-    def __init__(self, parent):
+    def __init__(self, parent, board_tile_width, board_tile_length, board_pixel_size):
         tk.Frame.__init__(self, parent)
 
-        self.board_length = 700
-        self.board_width = 560
-        self.tile_length = self.board_length / 10
+        self.board_tile_width = board_tile_width
+        self.board_tile_length = board_tile_length
+        self.tile_length = board_pixel_size / board_tile_width
+        self.board_pixel_length = self.tile_length * board_tile_length
+        self.board_pixel_width = self.tile_length * board_tile_width
+        
         self.canvas = tk.Canvas(
             root, 
-            width = self.board_width, height = self.board_length, 
+            width = self.board_pixel_width, height = self.board_pixel_length, 
             highlightthickness = 0)
         self.first_click_detector_id = 0
         self.canvas.tag_bind("tile", "<Button-1>", self._on_tile_click)
         self.canvas.tag_bind("first_click_setup", "<Button-1>", self._on_first_click)
-        self.minefield = [[self._create_tile(row, col) for col in range(10)] for row in range(10)]
+        self.minefield = [[self._create_tile(row, col) for col in range(board_tile_width)] for row in range(board_tile_length)]
         self._setup_first_click_detector()
 
 
@@ -91,7 +94,10 @@ class Minesweeper(tk.Frame):
         tile.clear()
         if tile_type != "near_bomb":
             for neighbor_coords in tile.get_4_direction_neighbors():
-                if -1 not in neighbor_coords and 10 not in neighbor_coords:
+                if -1 not in neighbor_coords                        and \
+                    self.board_tile_width not in neighbor_coords    and \
+                    self.board_tile_length not in neighbor_coords:
+
                     neighbor = self.minefield[neighbor_coords[0]][neighbor_coords[1]]
                     if neighbor.type == "blank" or neighbor.type == "near_bomb":
                         self._recursive_tile_clear(neighbor)
@@ -129,7 +135,7 @@ class Minesweeper(tk.Frame):
 
     def _setup_first_click_detector(self):
         self.first_click_detector_id = self.canvas.create_rectangle(
-            0, 0, self.board_width, self.board_length,
+            0, 0, self.board_pixel_width, self.board_pixel_length,
             fill = "",
             outline = "",
             tags = "first_click_setup")
@@ -142,21 +148,27 @@ class Minesweeper(tk.Frame):
         first_tile_row = math.floor(event.y / self.tile_length)
         first_tile = self.minefield[first_tile_row][first_tile_column]
 
-        for bomb_num in range(10):
+        average_tile_length = (self.board_tile_width + self.board_tile_length) / 5
+
+        for bomb_num in range(int(average_tile_length ** 2)):
             bomb_tile = first_tile
             while bomb_tile == first_tile:
                 bomb_tile = r.choice(r.choice(self.minefield))
-            bomb_tile.type == "bomb"
+            bomb_tile.type = "bomb"
 
             self.canvas.itemconfig(bomb_tile.tile_id, fill = "#FFF012")# DEBUG
 
             for neighbor_coords in bomb_tile.get_8_direction_neighbors():
-                if -1 not in neighbor_coords and 10 not in neighbor_coords:
+                if -1 not in neighbor_coords                        and \
+                    self.board_tile_width not in neighbor_coords    and \
+                    self.board_tile_length not in neighbor_coords:
+
                     neighbor = self.minefield[neighbor_coords[0]][neighbor_coords[1]]
                     neighbor.bombs_near += 1
                     neighbor.type = "near_bomb"
 
         self.canvas.delete(self.first_click_detector_id)
+        self._recursive_tile_clear(first_tile)
 
 
 
@@ -165,7 +177,7 @@ class Minesweeper(tk.Frame):
 if __name__ == "__main__":
     root = tk.Tk()
 
-    instance = Minesweeper(root)
+    instance = Minesweeper(root, 20, 20, 800)
     instance.pack(side="top", fill="both", expand=False)
     instance.canvas.pack()
 
