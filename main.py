@@ -148,7 +148,7 @@ class Minesweeper(tk.Frame):
         first_tile_row = math.floor(event.y / self.tile_length)
         first_tile = self.minefield[first_tile_row][first_tile_column]
 
-        average_tile_length = (self.board_tile_width + self.board_tile_length) / 5
+        average_tile_length = (self.board_tile_width + self.board_tile_length) / 5.5
 
         for bomb_num in range(int(average_tile_length ** 2)):
             bomb_tile = first_tile
@@ -177,9 +177,9 @@ class Minesweeper(tk.Frame):
 if __name__ == "__main__":
     root = tk.Tk()
 
-    instance = Minesweeper(root, 20, 20, 800)
-    instance.pack(side="top", fill="both", expand=False)
-    instance.canvas.pack()
+    minesweeper = Minesweeper(root, 10, 8, 900)
+    minesweeper.pack(side="top", fill="both", expand=False)
+    minesweeper.canvas.pack()
 
     root.title("Minesweeper!")
     root.resizable(False, False)
