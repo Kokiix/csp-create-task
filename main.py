@@ -7,6 +7,10 @@ import math
 
 class Tile(object):
     def __init__(self, canvas, length, color, tile_type, row, col):
+        self.LIGHT_BROWN = "#E5C29F"
+        self.DARK_BROWN = "#D7B899"
+        self.LIGHT_GREEN = "#aad751"
+
         self.canvas = canvas
         self.type = tile_type
         self.row = row
@@ -15,7 +19,7 @@ class Tile(object):
         self.font = ('Helvetica',
         int(length / 2), 'bold')
         self.length = length
-        self.color = "light" if color == "#aad751" else "dark"
+        self.color = "light" if color == self.LIGHT_GREEN else "dark"
 
         self.x = self.col * self.length
         self.y = self.row * self.length
@@ -32,15 +36,15 @@ class Tile(object):
 
     def _get_distance_color(self):
         match self.bombs_near:
-            case 1: return "#1976D2"
-            case 2: return "#388E3C"
-            case 3: return "#D32F2F"
-            case 4: return "#7B1FA2"
+            case 1: return "#1976D2" # Blue
+            case 2: return "#388E3C" # Green
+            case 3: return "#D32F2F" # Red
+            case 4: return "#7B1FA2" # Purple
 
 
 
     def clear(self):
-        self.canvas.itemconfig(self.tile_id, fill = "#E5C29F" if self.color == "light" else "#D7B899")
+        self.canvas.itemconfig(self.tile_id, fill = self.LIGHT_BROWN if self.color == "light" else self.DARK_BROWN)
         if self.type == "near_bomb":
             self.text_id = self.canvas.create_text(
                 self.x + self.length / 2, self.y + self.length / 2, 
@@ -70,6 +74,9 @@ class Tile(object):
 class Minesweeper(tk.Frame):
     def __init__(self, parent, board_tile_width, board_tile_length, mine_number, board_pixel_size):
         tk.Frame.__init__(self, parent)
+
+        self.DARK_GREEN = "#A2D149"
+        self.LIGHT_GREEN = "#AAD751"
 
         self.mine_number = mine_number
         self.board_tile_width = board_tile_width
@@ -119,9 +126,8 @@ class Minesweeper(tk.Frame):
         x = col * self.tile_length
         y = row * self.tile_length
         
-        # MAKE EASIER TO READ
-        color1 = "#aad751" if row % 2 == 0 else "#a2d149"
-        color2 = "#aad751" if color1 == "#a2d149" else "#a2d149"
+        color1 = self.LIGHT_GREEN if row % 2 == 0 else self.DARK_GREEN
+        color2 = self.LIGHT_GREEN if color1 == self.DARK_GREEN else self.DARK_GREEN
         fill_color = color1 if col % 2 == 0 else color2
         
         return Tile(
