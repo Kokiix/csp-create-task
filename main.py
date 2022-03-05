@@ -72,16 +72,10 @@ class Minesweeper(tk.Frame):
             self.canvas.itemconfig(bomb_tile.tile_id, fill = "#FFF012") # DEBUG
 
             # increment numbers for tiles around bomb
-            for neighbor_coords in bomb_tile.get_8_direction_neighbors():
-                if -1 not in neighbor_coords                        and \
-                    self.board_tile_width != neighbor_coords[1]     and \
-                    self.board_tile_length != neighbor_coords[0]:
-
-                    neighbor = self.minefield[neighbor_coords[0]][neighbor_coords[1]]
-
-                    if neighbor.type != "bomb":
-                        neighbor.bombs_near += 1
-                        neighbor.type = "near_bomb"
+            for neighbor in self._get_neighbors(bomb_tile, 8):
+                if neighbor.type != "bomb":
+                    neighbor.bombs_near += 1
+                    neighbor.type = "near_bomb"
 
         self.canvas.delete(self.first_click_detector_id)
         self._clear_tiles(first_tile)
@@ -92,7 +86,7 @@ class Minesweeper(tk.Frame):
         tile_row = math.floor(event.y / self.tile_length)
         tile = self.minefield[tile_row][tile_column]
 
-        if tile.type == "blank" or tile.type == "near_bomb:
+        if tile.type == "blank" or tile.type == "near_bomb":
             self._clear_tiles(tile)
             self.canvas.pack() # reload visual changes
         elif tile.type == "bomb":
@@ -103,14 +97,32 @@ class Minesweeper(tk.Frame):
         tile_type = tile.type
         tile.clear()
         if tile_type != "near_bomb": # stop clear on reaching numbers - DOESN'T WORK ON CORNERS :(
-            for neighbor_coords in tile.get_4_direction_neighbors():
-                if -1 not in neighbor_coords                        and \
-                    self.board_tile_width != neighbor_coords[1]     and \
-                    self.board_tile_length != neighbor_coords[0]:
+            for neighbor in self._get_neighbors(tile, 4):
+                if neighbor.type == "blank" or neighbor.type == "near_bomb":
+                    self._clear_tiles(neighbor)
 
-                    neighbor = self.minefield[neighbor_coords[0]][neighbor_coords[1]]
-                    if neighbor.type == "blank" or neighbor.type == "near_bomb":
-                        self._clear_tiles(neighbor)
+
+    def _get_neighbors(self, tile, number_of_neighbors):
+        neighbor_coords = []
+        if number_of_neighbors == 4:
+            neighbor_coords = [
+                [tile.row - 1, tile.col], [tile.row + 1, tile.col], 
+                [tile.row, tile.col - 1], [tile.row, tile.col + 1]]
+        elif number_of_neighbors == 8:
+            neighbor_coords = [
+                [tile.row - 1, tile.col], [tile.row - 1, tile.col - 1], [tile.row - 1, tile.col + 1],
+                [tile.row + 1, tile.col], [tile.row + 1, tile.col - 1], [tile.row + 1, tile.col + 1], 
+                [tile.row, tile.col + 1], [tile.row, tile.col - 1]]
+
+        final_tileset = []
+        for coord_pair in neighbor_coords:
+            if -1 not in coord_pair                        and \
+                self.board_tile_width != coord_pair[1]     and \
+                self.board_tile_length != coord_pair[0]:
+
+                final_tileset.append(self.minefield[coord_pair[0]][coord_pair[1]])
+        return final_tileset
+
 
 
 class Tile(object):
@@ -159,20 +171,6 @@ class Tile(object):
                 fill = self._get_distance_color(),
                 font = self.font)
         self.type = "cleared"
-
-
-    # REDUCE REPETITIVENESS AND DO SOMETHING ABOUT RELIANCE ON MINEFIELD CLASS FOR FINDING NEIGHBORS
-    def get_4_direction_neighbors(self):
-        return [
-            [self.row - 1, self.col], [self.row + 1, self.col], 
-            [self.row, self.col - 1], [self.row, self.col + 1]]
-
-
-    def get_8_direction_neighbors(self):
-        return [
-            [self.row - 1, self.col], [self.row - 1, self.col - 1], [self.row - 1, self.col + 1],
-            [self.row + 1, self.col], [self.row + 1, self.col - 1], [self.row + 1, self.col + 1], 
-            [self.row, self.col + 1], [self.row, self.col - 1]]
 
 
 if __name__ == "__main__":
