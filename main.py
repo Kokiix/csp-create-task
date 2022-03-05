@@ -72,7 +72,7 @@ class Minesweeper(tk.Frame):
             self.canvas.itemconfig(bomb_tile.tile_id, fill = "#FFF012") # DEBUG
 
             # increment numbers for tiles around bomb
-            for neighbor in self._get_neighbors(bomb_tile, 8):
+            for neighbor in self._get_neighbors(bomb_tile):
                 if neighbor.type != "bomb":
                     neighbor.bombs_near += 1
                     neighbor.type = "near_bomb"
@@ -97,22 +97,17 @@ class Minesweeper(tk.Frame):
         tile_type = tile.type
         tile.clear()
         if tile_type != "near_bomb": # stop clear on reaching numbers - DOESN'T WORK ON CORNERS :(
-            for neighbor in self._get_neighbors(tile, 4):
+            for neighbor in self._get_neighbors(tile):
                 if neighbor.type == "blank" or neighbor.type == "near_bomb":
                     self._clear_tiles(neighbor)
 
 
-    def _get_neighbors(self, tile, number_of_neighbors):
+    def _get_neighbors(self, tile):
         neighbor_coords = []
-        if number_of_neighbors == 4:
-            neighbor_coords = [
-                [tile.row - 1, tile.col], [tile.row + 1, tile.col], 
-                [tile.row, tile.col - 1], [tile.row, tile.col + 1]]
-        elif number_of_neighbors == 8:
-            neighbor_coords = [
-                [tile.row - 1, tile.col], [tile.row - 1, tile.col - 1], [tile.row - 1, tile.col + 1],
-                [tile.row + 1, tile.col], [tile.row + 1, tile.col - 1], [tile.row + 1, tile.col + 1], 
-                [tile.row, tile.col + 1], [tile.row, tile.col - 1]]
+        neighbor_coords = [
+            [tile.row - 1, tile.col], [tile.row - 1, tile.col - 1], [tile.row - 1, tile.col + 1],
+            [tile.row + 1, tile.col], [tile.row + 1, tile.col - 1], [tile.row + 1, tile.col + 1], 
+            [tile.row, tile.col + 1], [tile.row, tile.col - 1]]
 
         final_tileset = []
         for coord_pair in neighbor_coords:
