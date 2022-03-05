@@ -1,7 +1,10 @@
 import tkinter as tk
 import random as r
 import math
+import threading
+# need to be installed
 from PIL import ImageTk, Image
+from playsound import playsound
 
 
 class Minesweeper(tk.Frame):
@@ -98,6 +101,7 @@ class Minesweeper(tk.Frame):
                 self.canvas.pack() # reload visual changes
             elif tile.type == "mine":
                 self._display_end_screen("loss")
+                
         elif event.num == 3 and tile.type != "cleared":
             if tile.has_flag:
                 tile.deflag()
@@ -138,6 +142,7 @@ class Minesweeper(tk.Frame):
 
     def _display_end_screen(self, result):
         self.canvas.delete("all")
+        threading.Thread(target = playsound, args = ("boing.wav",), daemon = True).start()
         self.canvas.create_image(
             self.board_pixel_width / 2, self.board_pixel_length / 2, 
             anchor = "center", 
@@ -244,7 +249,7 @@ if __name__ == "__main__":
 
     # game/window settings
 
-    minesweeper = Minesweeper(root, 10, 8, 10, 50) # easy
+    minesweeper = Minesweeper(root, 10, 8, 10, 1000) # easy
     # minesweeper = Minesweeper(root, 18, 14, 40, 900) # medium
     minesweeper.pack(fill="both", expand=True)
     minesweeper.canvas.pack()
