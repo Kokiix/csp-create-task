@@ -29,7 +29,7 @@ class Minesweeper(tk.Frame):
 
         self.minefield = [[self._create_tile(row, col) for col in range(board_tile_width)] for row in range(board_tile_length)]
 
-        self.canvas.tag_bind("tile", "<Button-1>", self._on_tile_click)
+        self.canvas.tag_bind("clickable", "<Button>", self._on_tile_click)
 
         self.first_click_detector_id = -10
         self.canvas.tag_bind("first_click_setup", "<Button-1>", self._on_first_click)
@@ -92,11 +92,18 @@ class Minesweeper(tk.Frame):
         tile_row = math.floor(event.y / self.tile_length)
         tile = self.minefield[tile_row][tile_column]
 
-        if tile.type == "blank" or tile.type == "near_mine":
-            self._clear_tiles(tile)
-            self.canvas.pack() # reload visual changes
-        elif tile.type == "mine":
-            self._display_end_screen("loss")
+        if event.num == 1 and not tile.has_flag:
+            if tile.type == "blank" or tile.type == "near_mine":
+                self._clear_tiles(tile)
+                self.canvas.pack() # reload visual changes
+            elif tile.type == "mine":
+                self._display_end_screen("loss")
+        elif event.num == 3 and tile.type != "cleared":
+            if tile.has_flag:
+                tile.deflag()
+            else:
+                tile.flag()
+
             
 
     def _clear_tiles(self, tile): # RENAME function to reflect recursive nature
@@ -144,17 +151,21 @@ class Tile(object):
         self.LIGHT_GREEN = "#AAD751"
 
         self.canvas = canvas
-        self.type = tile_type
         self.row = row
         self.col = col
+        self.length = length
+        self.x = self.col * self.length
+        self.y = self.row * self.length
+
+        self.type = tile_type
         self.mines_near = 0
         self.font = ('Helvetica',
         int(length / 2), 'bold')
-        self.length = length
         self.color = "light" if color == self.LIGHT_GREEN else "dark"
 
-        self.x = self.col * self.length
-        self.y = self.row * self.length
+        self.has_flag = False
+        self.flag_part_ids = []
+        
 
         # canvas object constructors return a unique id for that obj
         self.text_id = None
@@ -163,7 +174,7 @@ class Tile(object):
             self.x + self.length, self.y + self.length,
             fill = color,
             outline = "",
-            tags = ["tile", self.type])
+            tags = ["clickable", self.type])
 
 
     def _get_distance_color(self):
@@ -175,6 +186,7 @@ class Tile(object):
 
 
     def clear(self):
+        self.deflag()
         self.canvas.itemconfig(self.tile_id, fill = self.LIGHT_BROWN if self.color == "light" else self.DARK_BROWN)
         if self.type == "near_mine":
             self.text_id = self.canvas.create_text(
@@ -184,13 +196,55 @@ class Tile(object):
                 font = self.font)
         self.type = "cleared"
 
+    def flag(self):
+        pole_x = self.x + self.length * 0.35
+        pole_y = self.y + self.length * 0.20
+        pole_width = self.length * 0.08
+        pole_length = self.length * 0.55
+
+        flag_pole = self.canvas.create_rectangle(
+            pole_x, pole_y,
+            pole_x + pole_width, pole_y + pole_length,
+            fill = "red", outline = "")
+
+        cloth_tip_x = pole_x + self.length * 0.4
+        cloth_tip_y = pole_y + self.length * 0.1
+        cloth_base_y = pole_y + self.length * 0.25
+
+        cloth_points = [pole_x + pole_width, pole_y, 
+        cloth_tip_x, cloth_tip_y, 
+        pole_x + pole_width, cloth_base_y]
+
+        flag_cloth = self.canvas.create_polygon(
+            cloth_points,
+            fill = "red", outline = "")
+
+        base_x_offset = pole_width * 0.5
+        base_y_offset = pole_length * 0.3
+        flag_base = self.canvas.create_arc(
+            pole_x - base_x_offset, pole_y + pole_length * 0.9,
+            pole_x + pole_width + base_x_offset, pole_y + pole_length + base_y_offset,
+            extent = 180, fill = "red", outline = "")
+
+        self.flag_part_ids = [flag_pole, flag_cloth, flag_base]
+        for flag_part in self.flag_part_ids:
+            self.canvas.itemconfig(flag_part, tags = ["clickable"])
+        self.has_flag = True
+
+
+    def deflag(self):
+        for flag_part in self.flag_part_ids:
+            self.canvas.delete(flag_part)
+        self.flag_part_ids.clear()
+        self.has_flag = False
+
 
 if __name__ == "__main__":
     root = tk.Tk()
 
     # game/window settings
 
-    minesweeper = Minesweeper(root, 10, 8, 10, 900) # easy
+    minesweeper = Minesweeper(root, 10, 8, 10, 50) # easy
     # minesweeper = Minesweeper(root, 18, 14, 40, 900) # medium
     minesweeper.pack(fill="both", expand=True)
     minesweeper.canvas.pack()
