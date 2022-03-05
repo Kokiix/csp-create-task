@@ -68,6 +68,7 @@ class Minesweeper(tk.Frame):
             while bomb_tile == first_tile or bomb_tile.type == "bomb":
                 bomb_tile = r.choice(r.choice(self.minefield))
             bomb_tile.type = "bomb"
+            print(str(bomb_tile.row) + ", " + str(bomb_tile.col))
 
             # self.canvas.itemconfig(bomb_tile.tile_id, fill = "#FFF012") # DEBUG
 
