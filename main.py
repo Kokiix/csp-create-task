@@ -9,7 +9,7 @@ class Tile(object):
     def __init__(self, canvas, length, color, tile_type, row, col):
         self.LIGHT_BROWN = "#E5C29F"
         self.DARK_BROWN = "#D7B899"
-        self.LIGHT_GREEN = "#aad751"
+        self.LIGHT_GREEN = "#AAD751"
 
         self.canvas = canvas
         self.type = tile_type
