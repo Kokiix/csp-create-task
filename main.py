@@ -1,11 +1,13 @@
 import tkinter as tk
 import random as r
 import math
+from PIL import ImageTk, Image
 
 
 class Minesweeper(tk.Frame):
     def __init__(self, parent, board_tile_width, board_tile_length, mine_number, board_pixel_size):
-        tk.Frame.__init__(self, parent)
+        self.root = parent
+        tk.Frame.__init__(self, self.root)
 
         self.DARK_GREEN = "#A2D149"
         self.LIGHT_GREEN = "#AAD751"
@@ -20,7 +22,7 @@ class Minesweeper(tk.Frame):
         self.canvas = tk.Canvas(
             root, 
             width = self.board_pixel_width, height = self.board_pixel_length, 
-            highlightthickness = 0)
+            highlightthickness = 0, bg = "white")
 
         self.minefield = [[self._create_tile(row, col) for col in range(board_tile_width)] for row in range(board_tile_length)]
 
@@ -29,6 +31,7 @@ class Minesweeper(tk.Frame):
         self.first_click_detector_id = -10
         self.canvas.tag_bind("first_click_setup", "<Button-1>", self._on_first_click)
         self._setup_first_click_detector()
+        self.lose_screen = ImageTk.PhotoImage(Image.open("funnybunny.jpg").resize((int(self.board_pixel_width), int(self.board_pixel_length))))
 
 
     def _create_tile(self, row, col):
@@ -63,14 +66,14 @@ class Minesweeper(tk.Frame):
         first_tile = self.minefield[first_tile_row][first_tile_column]
 
         for bomb_num in range(self.mine_number):
-            # ensure first click isn't a bomb
+            # ensure first click isn't a bomb; 
+            # keeps finding bomb placement that isn't already first click or another bomb
             bomb_tile = first_tile
             while bomb_tile == first_tile or bomb_tile.type == "bomb":
                 bomb_tile = r.choice(r.choice(self.minefield))
             bomb_tile.type = "bomb"
-            print(str(bomb_tile.row) + ", " + str(bomb_tile.col))
 
-            # self.canvas.itemconfig(bomb_tile.tile_id, fill = "#FFF012") # DEBUG
+            self.canvas.itemconfig(bomb_tile.tile_id, fill = "#FFF012") # DEBUG
 
             # increment numbers for tiles around bomb
             for neighbor in self._get_neighbors(bomb_tile):
@@ -91,13 +94,15 @@ class Minesweeper(tk.Frame):
             self._clear_tiles(tile)
             self.canvas.pack() # reload visual changes
         elif tile.type == "bomb":
-            return # BOOM
-
+            self.canvas.delete("all")
+            self.canvas.create_image(
+                self.board_pixel_width / 2, self.board_pixel_length / 2, 
+                anchor = "center", image = self.lose_screen)
 
     def _clear_tiles(self, tile): # RENAME function to reflect recursive nature
         tile_type = tile.type
         tile.clear()
-        if tile_type != "near_bomb": # stop clear on reaching numbers - DOESN'T WORK ON CORNERS :(
+        if tile_type != "near_bomb":
             for neighbor in self._get_neighbors(tile):
                 if neighbor.type == "blank" or neighbor.type == "near_bomb":
                     self._clear_tiles(neighbor)
@@ -176,7 +181,7 @@ if __name__ == "__main__":
 
     minesweeper = Minesweeper(root, 10, 8, 10, 900) # easy
     # minesweeper = Minesweeper(root, 18, 14, 40, 900) # medium
-    minesweeper.pack(side="top", fill="both", expand=False)
+    minesweeper.pack(fill="both", expand=True)
     minesweeper.canvas.pack()
 
     root.title("Minesweeper!")
