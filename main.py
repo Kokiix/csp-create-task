@@ -19,6 +19,9 @@ class Minesweeper(tk.Frame):
         self.board_pixel_length = self.tile_length * board_tile_length
         self.board_pixel_width = self.tile_length * board_tile_width
         
+        self.tiles_cleared = 0
+        self.lose_screen = ImageTk.PhotoImage(Image.open("funnybunny.jpg").resize((int(self.board_pixel_width), int(self.board_pixel_length))))
+        self.win_screen = ImageTk.PhotoImage(Image.open("funnybunnywin.jpg").resize((int(self.board_pixel_width), int(self.board_pixel_length))))
         self.canvas = tk.Canvas(
             root, 
             width = self.board_pixel_width, height = self.board_pixel_length, 
@@ -31,7 +34,6 @@ class Minesweeper(tk.Frame):
         self.first_click_detector_id = -10
         self.canvas.tag_bind("first_click_setup", "<Button-1>", self._on_first_click)
         self._setup_first_click_detector()
-        self.lose_screen = ImageTk.PhotoImage(Image.open("funnybunny.jpg").resize((int(self.board_pixel_width), int(self.board_pixel_length))))
 
 
     def _create_tile(self, row, col):
@@ -65,21 +67,21 @@ class Minesweeper(tk.Frame):
         first_tile_row = math.floor(event.y / self.tile_length)
         first_tile = self.minefield[first_tile_row][first_tile_column]
 
-        for bomb_num in range(self.mine_number):
-            # ensure first click isn't a bomb; 
-            # keeps finding bomb placement that isn't already first click or another bomb
-            bomb_tile = first_tile
-            while bomb_tile == first_tile or bomb_tile.type == "bomb":
-                bomb_tile = r.choice(r.choice(self.minefield))
-            bomb_tile.type = "bomb"
+        for mine_num in range(self.mine_number):
+            # ensure first click isn't a mine; 
+            # keeps finding mine placement that isn't already first click or another mine
+            mine_tile = first_tile
+            while mine_tile == first_tile or mine_tile.type == "mine":
+                mine_tile = r.choice(r.choice(self.minefield))
+            mine_tile.type = "mine"
 
-            self.canvas.itemconfig(bomb_tile.tile_id, fill = "#FFF012") # DEBUG
+            # self.canvas.itemconfig(mine_tile.tile_id, fill = "#FFF012") # DEBUG
 
-            # increment numbers for tiles around bomb
-            for neighbor in self._get_neighbors(bomb_tile):
-                if neighbor.type != "bomb":
-                    neighbor.bombs_near += 1
-                    neighbor.type = "near_bomb"
+            # increment numbers for tiles around mine
+            for neighbor in self._get_neighbors(mine_tile):
+                if neighbor.type != "mine":
+                    neighbor.mines_near += 1
+                    neighbor.type = "near_mine"
 
         self.canvas.delete(self.first_click_detector_id)
         self._clear_tiles(first_tile)
@@ -90,21 +92,23 @@ class Minesweeper(tk.Frame):
         tile_row = math.floor(event.y / self.tile_length)
         tile = self.minefield[tile_row][tile_column]
 
-        if tile.type == "blank" or tile.type == "near_bomb":
+        if tile.type == "blank" or tile.type == "near_mine":
             self._clear_tiles(tile)
             self.canvas.pack() # reload visual changes
-        elif tile.type == "bomb":
-            self.canvas.delete("all")
-            self.canvas.create_image(
-                self.board_pixel_width / 2, self.board_pixel_length / 2, 
-                anchor = "center", image = self.lose_screen)
+        elif tile.type == "mine":
+            self._display_end_screen("loss")
+            
 
     def _clear_tiles(self, tile): # RENAME function to reflect recursive nature
         tile_type = tile.type
         tile.clear()
-        if tile_type != "near_bomb":
+        self.tiles_cleared += 1
+        if self.tiles_cleared == self.board_tile_length * self.board_tile_width - self.mine_number:
+            self._display_end_screen("win")
+            return
+        if tile_type != "near_mine":
             for neighbor in self._get_neighbors(tile):
-                if neighbor.type == "blank" or neighbor.type == "near_bomb":
+                if neighbor.type == "blank" or neighbor.type == "near_mine":
                     self._clear_tiles(neighbor)
 
 
@@ -125,6 +129,13 @@ class Minesweeper(tk.Frame):
         return final_tileset
 
 
+    def _display_end_screen(self, result):
+        self.canvas.delete("all")
+        self.canvas.create_image(
+            self.board_pixel_width / 2, self.board_pixel_length / 2, 
+            anchor = "center", 
+            image = self.lose_screen if result == "loss" else self.win_screen)
+
 
 class Tile(object):
     def __init__(self, canvas, length, color, tile_type, row, col):
@@ -136,7 +147,7 @@ class Tile(object):
         self.type = tile_type
         self.row = row
         self.col = col
-        self.bombs_near = 0
+        self.mines_near = 0
         self.font = ('Helvetica',
         int(length / 2), 'bold')
         self.length = length
@@ -156,7 +167,7 @@ class Tile(object):
 
 
     def _get_distance_color(self):
-        match self.bombs_near:
+        match self.mines_near:
             case 1: return "#1976D2" # Blue
             case 2: return "#388E3C" # Green
             case 3: return "#D32F2F" # Red
@@ -165,10 +176,10 @@ class Tile(object):
 
     def clear(self):
         self.canvas.itemconfig(self.tile_id, fill = self.LIGHT_BROWN if self.color == "light" else self.DARK_BROWN)
-        if self.type == "near_bomb":
+        if self.type == "near_mine":
             self.text_id = self.canvas.create_text(
                 self.x + self.length / 2, self.y + self.length / 2, 
-                text = str(self.bombs_near),
+                text = str(self.mines_near),
                 fill = self._get_distance_color(),
                 font = self.font)
         self.type = "cleared"
