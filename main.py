@@ -40,9 +40,6 @@ class Minesweeper(tk.Frame):
 
 
     def _create_tile(self, row, col):
-        x = col * self.tile_length
-        y = row * self.tile_length
-        
         # swap colors every other tile & every row
         color1 = self.LIGHT_GREEN if row % 2 == 0 else self.DARK_GREEN
         color2 = self.LIGHT_GREEN if color1 == self.DARK_GREEN else self.DARK_GREEN
@@ -188,6 +185,10 @@ class Tile(object):
             case 2: return "#388E3C" # Green
             case 3: return "#D32F2F" # Red
             case 4: return "#7B1FA2" # Purple
+            case 5: return "#FF8F00" # Gold
+            case 6: return "#0097A7" # Aqua
+            case 7: return "#424242" # Black
+            case 8: return "#9E9E9E" # Silver
 
 
     def clear(self):
@@ -250,7 +251,8 @@ if __name__ == "__main__":
     # game/window settings
 
     minesweeper = Minesweeper(root, 10, 8, 10, 1000) # easy
-    # minesweeper = Minesweeper(root, 18, 14, 40, 900) # medium
+    # minesweeper = Minesweeper(root, 18, 14, 40, 1000) # medium
+    # minesweeper = Minesweeper(root, 24, 20, 99, 1000) # hard
     minesweeper.pack(fill="both", expand=True)
     minesweeper.canvas.pack()
 
