@@ -63,15 +63,18 @@ class Minesweeper(tk.Frame):
 
 
     def _on_first_click(self, event):
-        first_tile_column = math.floor(event.x / self.tile_length)
+        first_tile_col = math.floor(event.x / self.tile_length)
         first_tile_row = math.floor(event.y / self.tile_length)
-        first_tile = self.minefield[first_tile_row][first_tile_column]
+        first_tile = self.minefield[first_tile_row][first_tile_col]
 
         for mine_num in range(self.mine_number):
             # ensure first click isn't a mine; 
             # keeps finding mine placement that isn't already first click or another mine
             mine_tile = first_tile
-            while mine_tile == first_tile or mine_tile.type == "mine":
+            while ((first_tile_col - 2 < mine_tile.col < first_tile_col + 2) and \
+                    (first_tile_row - 2 < mine_tile.row < first_tile_row + 2)) or \
+                    mine_tile.type == "mine":
+
                 mine_tile = r.choice(r.choice(self.minefield))
             mine_tile.type = "mine"
 
@@ -254,8 +257,8 @@ if __name__ == "__main__":
     screen_height = root.winfo_screenheight() - 100
 
     # minesweeper = Minesweeper(root, 10, 8, 10, screen_height) # easy
-    # minesweeper = Minesweeper(root, 18, 14, 40, screen_height) # medium
-    minesweeper = Minesweeper(root, 24, 20, 99, screen_height) # hard
+    minesweeper = Minesweeper(root, 18, 14, 40, screen_height) # medium
+    # minesweeper = Minesweeper(root, 24, 20, 99, screen_height) # hard
     minesweeper.pack(fill="both", expand=True)
     minesweeper.canvas.pack()
 
