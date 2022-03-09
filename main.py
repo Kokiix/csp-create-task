@@ -8,7 +8,7 @@ from playsound import playsound
 
 
 class Minesweeper(tk.Frame):
-    def __init__(self, parent, board_tile_width, board_tile_length, mine_number, board_pixel_size):
+    def __init__(self, parent, board_tile_width, board_tile_length, mine_number, board_pixel_height):
         self.root = parent
         tk.Frame.__init__(self, self.root)
 
@@ -18,7 +18,7 @@ class Minesweeper(tk.Frame):
         self.mine_number = mine_number
         self.board_tile_width = board_tile_width
         self.board_tile_length = board_tile_length
-        self.tile_length = board_pixel_size / board_tile_width
+        self.tile_length = board_pixel_height / board_tile_length
         self.board_pixel_length = self.tile_length * board_tile_length
         self.board_pixel_width = self.tile_length * board_tile_width
         
@@ -180,15 +180,16 @@ class Tile(object):
 
 
     def _get_distance_color(self):
-        match self.mines_near:
-            case 1: return "#1976D2" # Blue
-            case 2: return "#388E3C" # Green
-            case 3: return "#D32F2F" # Red
-            case 4: return "#7B1FA2" # Purple
-            case 5: return "#FF8F00" # Gold
-            case 6: return "#0097A7" # Aqua
-            case 7: return "#424242" # Black
-            case 8: return "#9E9E9E" # Silver
+        colors = [
+            "#1976D2", # Blue
+            "#388E3C", # Green
+            "#D32F2F", # Red
+            "#7B1FA2", # Purple
+            "#FF8F00", # Gold
+            "#0097A7", # Aqua
+            "#424242", # Black
+            "#9E9E9E"] # Silver
+        return colors[self.mines_near - 1]
 
 
     def clear(self):
@@ -250,12 +251,17 @@ if __name__ == "__main__":
 
     # game/window settings
 
-    minesweeper = Minesweeper(root, 10, 8, 10, 1000) # easy
-    # minesweeper = Minesweeper(root, 18, 14, 40, 1000) # medium
-    # minesweeper = Minesweeper(root, 24, 20, 99, 1000) # hard
+    screen_height = root.winfo_screenheight() - 100
+
+    # minesweeper = Minesweeper(root, 10, 8, 10, screen_height) # easy
+    # minesweeper = Minesweeper(root, 18, 14, 40, screen_height) # medium
+    minesweeper = Minesweeper(root, 24, 20, 99, screen_height) # hard
     minesweeper.pack(fill="both", expand=True)
     minesweeper.canvas.pack()
 
+    width = minesweeper.board_pixel_width
+    length = minesweeper.board_pixel_length
+    root.geometry('%dx%d+%d+%d' % (width, length, root.winfo_screenwidth() / 2 - (width / 2), 10))
     root.title("Minesweeper!")
     root.resizable(False, False)
     root.mainloop()
