@@ -8,34 +8,46 @@ from playsound import playsound
 
 
 class Minesweeper(tk.Frame):
-    def __init__(self, parent, board_tile_width, board_tile_length, mine_number, board_pixel_height):
+    def __init__(self, parent, board_pixel_height):
         self.root = parent
         tk.Frame.__init__(self, self.root)
 
         self.DARK_GREEN = "#A2D149"
         self.LIGHT_GREEN = "#AAD751"
 
-        self.mine_number = mine_number
-        self.board_tile_width = board_tile_width
-        self.board_tile_length = board_tile_length
-        self.tile_length = board_pixel_height / board_tile_length
-        self.board_pixel_length = self.tile_length * board_tile_length
-        self.board_pixel_width = self.tile_length * board_tile_width
+        # minesweeper = Minesweeper(root, 10, 8, 10, screen_height) # easy
+        # minesweeper = Minesweeper(root, 18, 14, 40, screen_height) # medium
+        # minesweeper = Minesweeper(root, 24, 20, 99, screen_height) # hard
+
+        # DEFAULT  = medium
+        self.board_tile_width = 18
+        self.board_tile_length = 14
+        self.mine_number = 40
+
+        self.tile_length = board_pixel_height / self.board_tile_length
+        self.board_pixel_length = self.tile_length * self.board_tile_length
+        self.board_pixel_width = self.tile_length * self.board_tile_width    
         
-        self.tiles_cleared = 0
         self.lose_screen = ImageTk.PhotoImage(Image.open("funnybunny.jpg").resize((int(self.board_pixel_width), int(self.board_pixel_length))))
         self.win_screen = ImageTk.PhotoImage(Image.open("funnybunnywin.jpg").resize((int(self.board_pixel_width), int(self.board_pixel_length))))
         self.canvas = tk.Canvas(
             root, 
             width = self.board_pixel_width, height = self.board_pixel_length, 
             highlightthickness = 0, bg = "white")
-
-        self.minefield = [[self._create_tile(row, col) for col in range(board_tile_width)] for row in range(board_tile_length)]
-
         self.canvas.tag_bind("clickable", "<Button>", self._on_tile_click)
+        self.canvas.tag_bind("first_click_setup", "<Button-1>", self._on_first_click) 
 
+        self._start_menu()
+        
+
+    def _start_menu(self):
+        self._start()
+
+
+    def _start(self):
+        self.tiles_cleared = 0
         self.first_click_detector_id = -10
-        self.canvas.tag_bind("first_click_setup", "<Button-1>", self._on_first_click)
+        self.minefield = [[self._create_tile(row, col) for col in range(self.board_tile_width)] for row in range(self.board_tile_length)]
         self._setup_first_click_detector()
 
 
@@ -256,9 +268,8 @@ if __name__ == "__main__":
 
     screen_height = root.winfo_screenheight() - 100
 
-    # minesweeper = Minesweeper(root, 10, 8, 10, screen_height) # easy
-    minesweeper = Minesweeper(root, 18, 14, 40, screen_height) # medium
-    # minesweeper = Minesweeper(root, 24, 20, 99, screen_height) # hard
+    minesweeper = Minesweeper(root, screen_height)
+
     minesweeper.pack(fill="both", expand=True)
     minesweeper.canvas.pack()
 
@@ -267,4 +278,5 @@ if __name__ == "__main__":
     root.geometry('%dx%d+%d+%d' % (width, length, root.winfo_screenwidth() / 2 - (width / 2), 10))
     root.title("Minesweeper!")
     root.resizable(False, False)
+
     root.mainloop()
