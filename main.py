@@ -2,6 +2,7 @@ import tkinter as tk
 import random as r
 import math
 import threading
+import time
 ### need to be installed
 
 # python3 -m pip install playsound
@@ -41,6 +42,9 @@ class Minesweeper(tk.Frame):
         self.canvas.tag_bind("clickable", "<Button>", self._on_tile_click)
         self.canvas.tag_bind("first_click_setup", "<Button-1>", self._on_first_click)
 
+        self.start_time = 0
+        self.pixel = tk.PhotoImage(width = 1, height = 1)
+
         self.menu_font = ('Helvetica', -1 * int(self.board_pixel_length / 35))
         self._start_menu()
         
@@ -52,7 +56,7 @@ class Minesweeper(tk.Frame):
             bd = 0,
             text = "Easy",
             font = self.menu_font,
-            image = tk.PhotoImage(width = 1, height = 1),
+            image = self.pixel,
             width = int(self.board_pixel_width / 3),
             height = int(self.board_pixel_length / 10),
             command = self._menu_button,
@@ -63,7 +67,7 @@ class Minesweeper(tk.Frame):
 
 
     def _menu_button(self):
-        print("test")
+        pass
 
 
     def _start(self):
@@ -123,6 +127,7 @@ class Minesweeper(tk.Frame):
 
         self.canvas.delete(self.first_click_detector_id)
         self._clear_tiles(first_tile)
+        self.time = time.time()
 
 
     def _on_tile_click(self, event):
@@ -181,6 +186,7 @@ class Minesweeper(tk.Frame):
             self.board_pixel_width / 2, self.board_pixel_length / 2, 
             anchor = "center", 
             image = self.lose_screen if result == "loss" else self.win_screen)
+        print(time.time() - self.start_time)
 
 
 class Tile(object):
