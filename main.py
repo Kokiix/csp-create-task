@@ -2,7 +2,11 @@ import tkinter as tk
 import random as r
 import math
 import threading
-# need to be installed
+### need to be installed
+
+# python3 -m pip install playsound
+# python3 -m pip install Pillow
+
 from PIL import ImageTk, Image
 from playsound import playsound
 
@@ -35,18 +39,37 @@ class Minesweeper(tk.Frame):
             width = self.board_pixel_width, height = self.board_pixel_length, 
             highlightthickness = 0, bg = "white")
         self.canvas.tag_bind("clickable", "<Button>", self._on_tile_click)
-        self.canvas.tag_bind("first_click_setup", "<Button-1>", self._on_first_click) 
+        self.canvas.tag_bind("first_click_setup", "<Button-1>", self._on_first_click)
 
+        self.menu_font = ('Helvetica', -1 * int(self.board_pixel_length / 35))
         self._start_menu()
         
 
     def _start_menu(self):
-        self._start()
+        button = tk.Button(
+            self.root,
+            bg = self.LIGHT_GREEN,
+            bd = 0,
+            text = "Easy",
+            font = self.menu_font,
+            image = tk.PhotoImage(width = 1, height = 1),
+            width = int(self.board_pixel_width / 3),
+            height = int(self.board_pixel_length / 10),
+            command = self._menu_button,
+            compound = "c"
+            )
+        button.pack()
+        button.place(relx = 0.5, rely = 0.2, anchor = "center")
+
+
+    def _menu_button(self):
+        print("test")
 
 
     def _start(self):
         self.tiles_cleared = 0
         self.first_click_detector_id = -10
+        self.canvas.delete("all")
         self.minefield = [[self._create_tile(row, col) for col in range(self.board_tile_width)] for row in range(self.board_tile_length)]
         self._setup_first_click_detector()
 
@@ -153,7 +176,6 @@ class Minesweeper(tk.Frame):
 
 
     def _display_end_screen(self, result):
-        self.canvas.delete("all")
         threading.Thread(target = playsound, args = ("boing.wav",), daemon = True).start()
         self.canvas.create_image(
             self.board_pixel_width / 2, self.board_pixel_length / 2, 
