@@ -30,11 +30,12 @@ class Minesweeper(tk.Frame):
         self.mine_number = 40
 
         self.tile_length = board_pixel_height / self.board_tile_length
-        self.board_pixel_length = self.tile_length * self.board_tile_length
-        self.board_pixel_width = self.tile_length * self.board_tile_width    
+        self.board_pixel_length = int(self.tile_length * self.board_tile_length)
+        self.board_pixel_width = int(self.tile_length * self.board_tile_width)    
         
-        self.lose_screen = ImageTk.PhotoImage(Image.open("funnybunny.jpg").resize((int(self.board_pixel_width), int(self.board_pixel_length))))
-        self.win_screen = ImageTk.PhotoImage(Image.open("funnybunnywin.jpg").resize((int(self.board_pixel_width), int(self.board_pixel_length))))
+        self.lose_screen = ImageTk.PhotoImage(Image.open("funnybunny.jpg").resize((self.board_pixel_width, self.board_pixel_length)))
+        self.menu_screen_bg = ImageTk.PhotoImage(Image.open("funnybunny_black.jpg").resize((int(self.board_pixel_width * 0.8), int(self.board_pixel_length * 0.8))))
+        self.win_screen = ImageTk.PhotoImage(Image.open("funnybunnywin.jpg").resize((self.board_pixel_width, self.board_pixel_length)))
         self.canvas = tk.Canvas(
             root, 
             width = self.board_pixel_width, height = self.board_pixel_length, 
@@ -44,30 +45,62 @@ class Minesweeper(tk.Frame):
 
         self.start_time = 0
         self.pixel = tk.PhotoImage(width = 1, height = 1)
+        self.buttons = []
 
         self.menu_font = ('Helvetica', -1 * int(self.board_pixel_length / 35))
         self._start_menu()
         
 
     def _start_menu(self):
-        button = tk.Button(
-            self.root,
-            bg = self.LIGHT_GREEN,
-            bd = 0,
-            text = "Easy",
-            font = self.menu_font,
-            image = self.pixel,
-            width = int(self.board_pixel_width / 3),
-            height = int(self.board_pixel_length / 10),
-            command = self._menu_button,
-            compound = "c"
-            )
-        button.pack()
-        button.place(relx = 0.5, rely = 0.2, anchor = "center")
+        self.canvas.delete("all")
+        button_width = int(self.board_pixel_width / 4)
+        button_length = int(self.board_pixel_length / 10)
+        difficulties = ["Easy", "Medium", "Hard"]
+        self.canvas.create_image(
+            self.board_pixel_width / 2.75, self.board_pixel_length / 1.65, 
+            anchor = "center", 
+            image = self.menu_screen_bg)
+        for button_number in range(3):
+            button = tk.Button(
+                self.root,
+                bg = self.LIGHT_GREEN,
+                bd = 0,
+                text = difficulties[button_number],
+                font = self.menu_font,
+                image = self.pixel,
+                width = button_width,
+                height = button_length,
+                command = lambda buttonid = button_number : self._menu_button(buttonid),
+                compound = "c"
+                )
+            button.pack()
+            button.place(relx = 0.85, rely = 0.2 * (button_number + 1) + 0.1, anchor = "center")
+            self.buttons.append(button)
 
 
-    def _menu_button(self):
-        pass
+    def _menu_button(self, buttonid):
+        self.canvas.delete("all")
+        for button in self.buttons:
+            button.destroy()
+
+        if buttonid == 0: # easy
+            self.board_tile_width = 10
+            self.board_tile_length = 8
+            self.mine_number = 10
+        elif buttonid == 1: # medium
+            self.board_tile_width = 18
+            self.board_tile_length = 14
+            self.mine_number = 40
+        elif buttonid == 2: # hard
+            self.board_tile_width = 24
+            self.board_tile_length = 20
+            self.mine_number = 99
+
+        self.tile_length = self.board_pixel_length / self.board_tile_length
+        self.board_pixel_width = self.tile_length * self.board_tile_width
+        self.canvas.configure(width = self.board_pixel_width)
+        self.root.geometry("%dx%d" % (self.board_pixel_width, self.board_pixel_length))
+        self._start()
 
 
     def _start(self):
@@ -127,7 +160,7 @@ class Minesweeper(tk.Frame):
 
         self.canvas.delete(self.first_click_detector_id)
         self._clear_tiles(first_tile)
-        self.time = time.time()
+        self.start_time = time.time()
 
 
     def _on_tile_click(self, event):
@@ -182,11 +215,18 @@ class Minesweeper(tk.Frame):
 
     def _display_end_screen(self, result):
         threading.Thread(target = playsound, args = ("boing.wav",), daemon = True).start()
+        threading.Thread(target = self._end_animation, daemon = True).start()
         self.canvas.create_image(
             self.board_pixel_width / 2, self.board_pixel_length / 2, 
             anchor = "center", 
             image = self.lose_screen if result == "loss" else self.win_screen)
-        print(time.time() - self.start_time)
+        if result == "win":
+            print("Final Score: %d seconds" % round(time.time() - self.start_time, 2))
+
+
+    def _end_animation(self):
+        time.sleep(5)
+        self._start_menu()
 
 
 class Tile(object):
