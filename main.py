@@ -34,7 +34,7 @@ class Minesweeper(tk.Frame):
         self.board_pixel_width = int(self.tile_length * self.board_tile_width)    
         
         self.lose_screen = ImageTk.PhotoImage(Image.open("funnybunny_red.jpg").resize((self.board_pixel_width, self.board_pixel_length)))
-        self.menu_screen_bg = ImageTk.PhotoImage(Image.open("funnybunny_black.jpg").resize((int(self.board_pixel_width * 0.8), int(self.board_pixel_length * 0.8))))
+        self.menu_screen_bg = ImageTk.PhotoImage(Image.open("funnybunny_black.jpg").resize((int(self.board_pixel_width * 0.7), int(self.board_pixel_length * 0.7))))
         self.win_screen = ImageTk.PhotoImage(Image.open("funnybunny_green.jpg").resize((self.board_pixel_width, self.board_pixel_length)))
         self.canvas = tk.Canvas(
             root, 
@@ -61,7 +61,7 @@ class Minesweeper(tk.Frame):
         button_length = int(self.board_pixel_length / 10)
         difficulties = ["Easy", "Medium", "Hard"]
         self.canvas.create_image(
-            self.board_pixel_width / 2.75, self.board_pixel_length / 1.65, 
+            self.board_pixel_width / 3, self.board_pixel_length / 1.55, 
             anchor = "center", 
             image = self.menu_screen_bg)
         for button_number in range(3):
@@ -294,6 +294,7 @@ class Tile(object):
 
 
     def clear(self):
+        self.deflag()
         self.canvas.itemconfig(self.tile_id, fill = self.LIGHT_BROWN if self.color == "light" else self.DARK_BROWN)
         if self.type == "near_mine":
             self.text_id = self.canvas.create_text(
