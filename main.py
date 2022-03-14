@@ -33,9 +33,9 @@ class Minesweeper(tk.Frame):
         self.board_pixel_length = int(self.tile_length * self.board_tile_length)
         self.board_pixel_width = int(self.tile_length * self.board_tile_width)    
         
-        self.lose_screen = ImageTk.PhotoImage(Image.open("funnybunny.jpg").resize((self.board_pixel_width, self.board_pixel_length)))
+        self.lose_screen = ImageTk.PhotoImage(Image.open("funnybunny_red.jpg").resize((self.board_pixel_width, self.board_pixel_length)))
         self.menu_screen_bg = ImageTk.PhotoImage(Image.open("funnybunny_black.jpg").resize((int(self.board_pixel_width * 0.8), int(self.board_pixel_length * 0.8))))
-        self.win_screen = ImageTk.PhotoImage(Image.open("funnybunnywin.jpg").resize((self.board_pixel_width, self.board_pixel_length)))
+        self.win_screen = ImageTk.PhotoImage(Image.open("funnybunny_green.jpg").resize((self.board_pixel_width, self.board_pixel_length)))
         self.canvas = tk.Canvas(
             root, 
             width = self.board_pixel_width, height = self.board_pixel_length, 
