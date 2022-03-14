@@ -40,7 +40,6 @@ class Minesweeper(tk.Frame):
             root, 
             width = self.board_pixel_width, height = self.board_pixel_length, 
             highlightthickness = 0, bg = "white")
-        self.canvas.tag_bind("clickable", "<Button>", self._on_tile_click)
         self.canvas.tag_bind("first_click_setup", "<Button-1>", self._on_first_click)
 
         self.start_time = 0
@@ -48,10 +47,15 @@ class Minesweeper(tk.Frame):
         self.buttons = []
 
         self.menu_font = ('Helvetica', -1 * int(self.board_pixel_length / 35))
-        self._start_menu()
+        self._start_menu(None)
         
 
-    def _start_menu(self):
+    def _start_menu(self, event):
+        self.root.unbind("<Key>")
+        self.root.unbind("<Button>")
+
+        self.canvas.tag_bind("clickable", "<Button>", self._on_tile_click)
+
         self.canvas.delete("all")
         button_width = int(self.board_pixel_width / 4)
         button_length = int(self.board_pixel_length / 10)
@@ -220,13 +224,27 @@ class Minesweeper(tk.Frame):
             self.board_pixel_width / 2, self.board_pixel_length / 2, 
             anchor = "center", 
             image = self.lose_screen if result == "loss" else self.win_screen)
+
         if result == "win":
             print("Final Score: %d seconds" % round(time.time() - self.start_time, 2))
 
 
     def _end_animation(self):
-        time.sleep(5)
-        self._start_menu()
+        time.sleep(2)
+        if self.mine_number == 10:
+            sleep_amt = 0.005
+        elif self.mine_number == 40:
+            sleep_amt = 0.0000000005
+        elif self.mine_number == 99:
+            sleep_amt = 0.00000000005
+        # self.root.unbind("<Button>") DOESN'T WORK FOR SOME REASON???
+        for row in self.minefield:
+            for tile in row:
+                self.canvas.itemconfig(tile.tile_id, tags = "")
+                tile.bring_to_front()
+                time.sleep(sleep_amt)
+        self.root.bind("<Key>", self._start_menu)
+        self.root.bind("<Button>", self._start_menu)
 
 
 class Tile(object):
@@ -276,7 +294,6 @@ class Tile(object):
 
 
     def clear(self):
-        self.deflag()
         self.canvas.itemconfig(self.tile_id, fill = self.LIGHT_BROWN if self.color == "light" else self.DARK_BROWN)
         if self.type == "near_mine":
             self.text_id = self.canvas.create_text(
@@ -327,6 +344,14 @@ class Tile(object):
             self.canvas.delete(flag_part)
         self.flag_part_ids.clear()
         self.has_flag = False
+
+
+    def bring_to_front(self):
+        self.canvas.tag_raise(self.tile_id)
+        if self.type == "mine":
+            pass
+        elif self.text_id != None:
+            self.canvas.tag_raise(self.text_id)
 
 
 if __name__ == "__main__":
