@@ -13,7 +13,11 @@ from playsound import playsound
 
 
 class Minesweeper(tk.Frame):
-    def __init__(self, parent, board_pixel_height): # Height is passed in, then width is based on that because most monitors are horizontal
+    def __init__(self, parent, board_pixel_height):
+        """
+        Height is passed in, then width is based on that because most monitors are horizontal
+        """
+
         self.root = parent
         tk.Frame.__init__(self, self.root)
 
@@ -39,7 +43,8 @@ class Minesweeper(tk.Frame):
 
         # Import and scale images
         # self.menu_screen_title = TODO: ***ADRIAN STILL NEEDS TO DELIVER***
-        self.menu_screen_bg = ImageTk.PhotoImage(Image.open("funnybunny_black.jpg").resize((int(self.board_pixel_width * 0.7), int(self.board_pixel_height * 0.7))))
+        self.menu_screen_bg = ImageTk.PhotoImage(Image.open("funnybunny_black.jpg").resize(
+            (int(self.board_pixel_width * 0.7), int(self.board_pixel_height * 0.7))))
         self.lose_screen = ImageTk.PhotoImage(Image.open("funnybunny_red.jpg").resize((self.board_pixel_width, self.board_pixel_height)))
         self.win_screen = ImageTk.PhotoImage(Image.open("funnybunny_green.jpg").resize((self.board_pixel_width, self.board_pixel_height)))
 
@@ -47,12 +52,12 @@ class Minesweeper(tk.Frame):
         # Placeholder is to allow button configuration based off of pixels instead of font size
         self.button_placeholder = tk.PhotoImage(width = 1, height = 1)
         self.buttons = []
-        self.menu_font = ('Helvetica', -1 * int(self.board_pixel_height / 35)) # TODO: ***IMPROVE MENU FONT SOME TIME***
+        self.menu_font = ('Helvetica', -1 * int(self.board_pixel_height / 35)) # TODO: ***IMPROVE MENU FONT***
         self._start_menu(None) # Menu isn't being called by key/mouse callback so no event info
         
 
-    def _start_menu(self, event): # Event not used; required to register as mouse callback
-        # Any click is used after game over to get to the menu; this needs to be reset
+    def _start_menu(self, event): # Event param not used; required to register as mouse callback
+        # Click is used after game over to get to the menu; this needs to be reset
         self.root.unbind("<Button>")
         self.canvas.tag_bind("clickable", "<Button>", self._on_tile_click)
 
@@ -77,9 +82,9 @@ class Minesweeper(tk.Frame):
                 image = self.button_placeholder,
                 width = button_width,
                 height = button_height,
-                # Assign the menu button callback to each button along with id
+                # Assign callback to each button along with id
                 command = lambda buttonid = button_number : self._on_menu_select(buttonid),
-                # Displays the text instead of just the placeholder
+                # Displays text and placeholder instead of just the placeholder
                 compound = "c"
                 )
             button.pack()
@@ -123,7 +128,7 @@ class Minesweeper(tk.Frame):
 
         self.minefield = [[self._create_tile(row, col) for col in range(self.board_tile_width)] for row in range(self.board_tile_height)]
         # Creates invisible rectangle over whole window blocking tile click;
-        # canvas widget constructors return an id used to manipulate that widget
+        # canvas widget constructors return id used to manipulate the widget
         self.first_click_detector_id = self.canvas.create_rectangle(
             0, 0, self.board_pixel_width, self.board_pixel_height,
             fill = "",
@@ -132,11 +137,12 @@ class Minesweeper(tk.Frame):
 
 
     def _create_tile(self, row, col):
-        # Swap colors every other tile & every row
+        # Offset color every row
         color1 = self.LIGHT_GREEN if row % 2 == 0 else self.DARK_GREEN
         color2 = self.LIGHT_GREEN if color1 == self.DARK_GREEN else self.DARK_GREEN
+        # Swap color every col
         fill_color = color1 if col % 2 == 0 else color2
-        
+
         return Tile(
             self.canvas, 
             self.tile_side_length, 
@@ -145,8 +151,11 @@ class Minesweeper(tk.Frame):
             row, col)
 
 
-    # Ensures player gets open space around first click
     def _on_first_click(self, event):
+        """
+        Ensures player gets open space around first click
+        """
+
         # Figure out what tile first click corresponds to
         first_tile_col = math.floor(event.x / self.tile_side_length)
         first_tile_row = math.floor(event.y / self.tile_side_length)
@@ -271,7 +280,6 @@ class Tile(object):
     def __init__(self, canvas, height, color, tile_type, row, col):
         self.LIGHT_BROWN = "#E5C29F"
         self.DARK_BROWN = "#D7B899"
-        self.LIGHT_GREEN = "#AAD751"
 
         self.canvas = canvas
         self.row = row
@@ -282,15 +290,14 @@ class Tile(object):
 
         self.type = tile_type
         self.mines_near = 0
-        self.font = ('Helvetica',
-        int(height / 2), 'bold')
-        self.color = "light" if color == self.LIGHT_GREEN else "dark"
+        self.font = ('Helvetica', int(height / 2), 'bold')
+        self.color = "light" if color == "#AAD751" else "dark" # Color is matching to light green here
 
         self.has_flag = False
+        # Ids for each part of the flag (flag, base, cloth)
         self.flag_part_ids = []
-        
 
-        # Canvas widget constructors return an id used to manipulate that widget
+        # ID is used to manipulate widget later
         self.text_id = None
         self.tile_id = self.canvas.create_rectangle(
             self.x, self.y,
@@ -306,12 +313,11 @@ class Tile(object):
             self.text_id = self.canvas.create_text(
                 self.x + self.height / 2, self.y + self.height / 2, 
                 text = str(self.mines_near),
-                fill = self._get_distance_color(),
+                fill = self._get_number_color(),
                 font = self.font)
         self.type = "cleared"
 
 
-    # ALL NUMBERS ARE ARBITRARY & ACHIEVED THROUGH TRIAL/ERROR
     def flag(self):
         pole_x = self.x + self.height * 0.35
         pole_y = self.y + self.height * 0.20
@@ -352,7 +358,7 @@ class Tile(object):
         self.has_flag = False
 
 
-    def _get_distance_color(self):
+    def _get_number_color(self):
         colors = [
             "#1976D2", # Blue
             "#388E3C", # Green
