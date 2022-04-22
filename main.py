@@ -238,41 +238,47 @@ class Minesweeper(tk.Frame):
             for neighbor in self._get_neighbors(tile):
                 if neighbor.has_flag == False and (neighbor.type == "blank" or neighbor.type == "near_mine"):
                     self._clear_tiles(neighbor)
+        else:
+            # outline color is #8FB044
+            # add param for tile calling func and put outline on that side
+            for neighbor in self._get_neighbors(tile):
+                if neighbor.type != blank:
+                    tile.create_border()
 
 
     def _display_end_screen(self, result):
-        # playsound is async so program isn't held up by playing the entire sound
-        # The end animation is asnyc because it has its own timings
-        threading.Thread(target = playsound, args = ("boing.wav",), daemon = True).start()
-        threading.Thread(target = self._end_animation, daemon = True).start()
-
-        # Display FUNNY BUNNY
-        self.canvas.create_image(
+        end_screen = self.canvas.create_image(
             self.board_pixel_width / 2, self.board_pixel_height / 2, 
             anchor = "center", 
             image = self.lose_screen if result == "loss" else self.win_screen)
+
+        threading.Thread(target = playsound, args = ("boing.wav",), daemon = True).start()
+        threading.Thread(target = self._end_animation, args = (end_screen,), daemon = True).start()
 
         if result == "win":
             print("Final Score: %d seconds" % round(time.time() - self.start_time, 2))
 
 
-    def _end_animation(self):
+    def _end_animation(self, img):
         time.sleep(2)
-        # Faster animation on larger difficulties
-        if self.mine_number == 10:
-            sleep_amt = 0.005
-        elif self.mine_number == 40:
-            sleep_amt = 0.0005
-        elif self.mine_number == 99:
-            sleep_amt = 0.00005
+
+        # Medium/Hard difficulty
+        if self.mine_number == 40 or self.mine_number == 99:
+            img_x = 0
+            img_y = 0
+            for move in range(int(self.board_pixel_width / 12)):
+                self.canvas.move(img, img_x, img_y)
+                img_x += 0.5
+                time.sleep(0.005)
 
         for row in self.minefield:
             for tile in row:
                 self.canvas.itemconfig(tile.tile_id, tags = "")
                 tile.bring_to_front()
-                time.sleep(sleep_amt)
+                if self.mine_number == 10:
+                    time.sleep(0.005)
 
-        # Press any mouse button to go back to start after anim
+        self.root.bind("<Key>", self._start_menu)
         self.root.bind("<Button>", self._start_menu)
 
 
@@ -296,6 +302,8 @@ class Tile(object):
         self.has_flag = False
         # Ids for each part of the flag (flag, base, cloth)
         self.flag_part_ids = []
+        self.border_width = self.height * 0.05
+        self.borders = []
 
         # ID is used to manipulate widget later
         self.text_id = None
@@ -316,6 +324,23 @@ class Tile(object):
                 fill = self._get_number_color(),
                 font = self.font)
         self.type = "cleared"
+
+
+    def create_border(side):
+        # Upper left corner
+        x1 = self.x if side != "E" else self.x + self.height - self.border_width
+        y1 = self.y if side != "S" else self.y + self.height - self.border_width
+
+        # Bottom right corner
+        x2 = self.x + self.height + (0 if side != "W" else self.border_width)
+        y2 = self.y + self.height + (0 if side != "N" else self.border_width)
+
+        self.borders.append(self.canvas.create_rectangle(
+            x1, y1,
+            x2, y2,
+            fill = "#8FB044"))
+
+
 
 
     def flag(self):
