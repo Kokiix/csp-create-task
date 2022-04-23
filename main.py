@@ -41,8 +41,15 @@ class Minesweeper(tk.Frame):
             highlightthickness = 0, bg = "white")
         self.canvas.tag_bind("first_click_setup", "<Button-1>", self._on_first_click)
 
-        self.menu_screen_bg = ImageTk.PhotoImage(Image.open("funnybunny_black.jpg").resize(
-            (int(self.board_pixel_width * 0.7), int(self.board_pixel_height * 0.7))))
+        menu_img = Image.open(
+            "funnybunny_gray.jpg").resize(
+            (int(self.board_pixel_width * 0.525), int(self.board_pixel_height * 0.525)))
+
+        self.menu_screen_bg = ImageTk.PhotoImage(menu_img.rotate(25, fillcolor = "white", expand = 2))
+        self.menu_screen_bg_alt = ImageTk.PhotoImage(menu_img.rotate(-25, fillcolor = "white",  expand = 2))
+        self.menu_active = True
+
+
         self.title_screen = ImageTk.PhotoImage(Image.open("title.png").resize(
             (int(self.board_pixel_width), int(self.board_pixel_height * 0.40))))
         self.lose_screen = ImageTk.PhotoImage(Image.open("funnybunny_red.jpg").resize((self.board_pixel_width, self.board_pixel_height)))
@@ -52,7 +59,7 @@ class Minesweeper(tk.Frame):
         # Placeholder is to allow button configuration based off of pixels instead of font size
         self.button_placeholder = tk.PhotoImage(width = 1, height = 1)
         self.buttons = []
-        self.menu_font = ('Helvetica', -1 * int(self.board_pixel_height / 35)) # TODO: ***IMPROVE MENU FONT***
+        self.menu_font = ('Rockwell', int(self.board_pixel_height / 35)) # TODO: ***IMPROVE MENU FONT***
         self._start_menu(None) # Menu isn't being called by key/mouse callback so no event info
         
 
@@ -62,17 +69,18 @@ class Minesweeper(tk.Frame):
         self.canvas.tag_bind("clickable", "<Button>", self._on_tile_click)
 
         # Setup menu background/title
+        self.menu_active = True
         self.canvas.delete("all")
+
+        self.menu_bg = self.canvas.create_image(
+            self.board_pixel_width / 3, self.board_pixel_height / 1.55, 
+            anchor = "center", 
+            image = self.menu_screen_bg)
 
         self.canvas.create_image(
             0, 0, 
             anchor = "nw", 
             image = self.title_screen)
-
-        self.canvas.create_image(
-            self.board_pixel_width / 3, self.board_pixel_height / 1.55, 
-            anchor = "center", 
-            image = self.menu_screen_bg)
 
         # Setup difficulty buttons; board size can change between loops
         button_width = int(self.board_pixel_width / 4)
@@ -82,6 +90,7 @@ class Minesweeper(tk.Frame):
             button = tk.Button(
                 self.root,
                 bg = self.LIGHT_GREEN,
+                fg = "#696773",
                 bd = 0,
                 text = difficulties[button_number],
                 font = self.menu_font,
@@ -96,13 +105,23 @@ class Minesweeper(tk.Frame):
             button.pack()
 
             button_padding = 0.2
-            button_y_offset = 0.2
+            button_y_offset = 0.25
             button.place(relx = 0.85, rely = button_padding * (button_number + 1) + button_y_offset, anchor = "center")
             self.buttons.append(button)
+
+        threading.Thread(target = self._bun_dance, daemon = True).start()        
+
+    def _bun_dance(self):
+        while self.menu_active == True:
+            time.sleep(0.75)
+            self.canvas.itemconfig(self.menu_bg, image = self.menu_screen_bg_alt)
+            time.sleep(0.75)
+            self.canvas.itemconfig(self.menu_bg, image = self.menu_screen_bg)
 
 
     def _on_menu_select(self, buttonid):
         # Clear start menu
+        self.menu_active = False
         self.canvas.delete("all")
         for button in self.buttons:
             button.destroy()
@@ -250,8 +269,7 @@ class Minesweeper(tk.Frame):
                     xdiff = neighbor.col - tile.col
                     ydiff = neighbor.row - tile.row
                     direction = None
-
-                    # scan relevant direction for lack of border and extend to cover corners
+                    
                     if 0 in [xdiff, ydiff]:
                         if xdiff == 1:
                             direction = "W"
@@ -317,6 +335,7 @@ class Tile(object):
         self.mines_near = 0
         self.font = ('Helvetica', int(height / 2), 'bold')
         self.color = "light" if color == "#AAD751" else "dark" # Color is matching to light green here
+        hover_color = "#BFE17D" if color == "light" else "#B9DD77" # Color is matching to light green here
 
         self.has_flag = False
         # Ids for each part of the flag (flag, base, cloth)
@@ -330,12 +349,15 @@ class Tile(object):
             self.x, self.y,
             self.x + self.height, self.y + self.height,
             fill = color,
+            activefill = hover_color,
             outline = "",
             tags = ["clickable", self.type])
 
 
     def clear(self):
-        self.canvas.itemconfig(self.tile_id, fill = self.LIGHT_BROWN if self.color == "light" else self.DARK_BROWN)
+        self.canvas.itemconfig(self.tile_id, 
+            fill = self.LIGHT_BROWN if self.color == "light" else self.DARK_BROWN,
+            activefill = "")
         for rect in self.borders:
             self.canvas.delete(rect)
         self.borders = []
