@@ -41,10 +41,10 @@ class Minesweeper(tk.Frame):
             highlightthickness = 0, bg = "white")
         self.canvas.tag_bind("first_click_setup", "<Button-1>", self._on_first_click)
 
-        # Import and scale images
-        # self.menu_screen_title = TODO: ***ADRIAN STILL NEEDS TO DELIVER***
         self.menu_screen_bg = ImageTk.PhotoImage(Image.open("funnybunny_black.jpg").resize(
             (int(self.board_pixel_width * 0.7), int(self.board_pixel_height * 0.7))))
+        self.title_screen = ImageTk.PhotoImage(Image.open("title.png").resize(
+            (int(self.board_pixel_width), int(self.board_pixel_height * 0.40))))
         self.lose_screen = ImageTk.PhotoImage(Image.open("funnybunny_red.jpg").resize((self.board_pixel_width, self.board_pixel_height)))
         self.win_screen = ImageTk.PhotoImage(Image.open("funnybunny_green.jpg").resize((self.board_pixel_width, self.board_pixel_height)))
 
@@ -63,6 +63,12 @@ class Minesweeper(tk.Frame):
 
         # Setup menu background/title
         self.canvas.delete("all")
+
+        self.canvas.create_image(
+            0, 0, 
+            anchor = "nw", 
+            image = self.title_screen)
+
         self.canvas.create_image(
             self.board_pixel_width / 3, self.board_pixel_height / 1.55, 
             anchor = "center", 
@@ -239,11 +245,24 @@ class Minesweeper(tk.Frame):
                 if neighbor.has_flag == False and (neighbor.type == "blank" or neighbor.type == "near_mine"):
                     self._clear_tiles(neighbor)
         else:
-            # outline color is #8FB044
-            # add param for tile calling func and put outline on that side
             for neighbor in self._get_neighbors(tile):
-                if neighbor.type != blank:
-                    tile.create_border()
+                if neighbor.type == "mine" or neighbor.type == "near_mine" or neighbor.type == "blank":
+                    xdiff = neighbor.col - tile.col
+                    ydiff = neighbor.row - tile.row
+                    direction = None
+
+                    # scan relevant direction for lack of border and extend to cover corners
+                    if 0 in [xdiff, ydiff]:
+                        if xdiff == 1:
+                            direction = "W"
+                        elif xdiff == -1:
+                            direction = "E"
+
+                        if ydiff == 1:
+                            direction = "N"
+                        elif ydiff == -1:
+                            direction = "S"
+                        neighbor.create_border(direction)
 
 
     def _display_end_screen(self, result):
@@ -260,7 +279,7 @@ class Minesweeper(tk.Frame):
 
 
     def _end_animation(self, img):
-        time.sleep(2)
+        time.sleep(0.75)
 
         # Medium/Hard difficulty
         if self.mine_number == 40 or self.mine_number == 99:
@@ -302,7 +321,7 @@ class Tile(object):
         self.has_flag = False
         # Ids for each part of the flag (flag, base, cloth)
         self.flag_part_ids = []
-        self.border_width = self.height * 0.05
+        self.border_width = self.height * 0.1
         self.borders = []
 
         # ID is used to manipulate widget later
@@ -317,6 +336,9 @@ class Tile(object):
 
     def clear(self):
         self.canvas.itemconfig(self.tile_id, fill = self.LIGHT_BROWN if self.color == "light" else self.DARK_BROWN)
+        for rect in self.borders:
+            self.canvas.delete(rect)
+        self.borders = []
         if self.type == "near_mine":
             self.text_id = self.canvas.create_text(
                 self.x + self.height / 2, self.y + self.height / 2, 
@@ -326,21 +348,20 @@ class Tile(object):
         self.type = "cleared"
 
 
-    def create_border(side):
+    def create_border(self, side):
         # Upper left corner
-        x1 = self.x if side != "E" else self.x + self.height - self.border_width
-        y1 = self.y if side != "S" else self.y + self.height - self.border_width
+        x1 = self.x + (0 if side != "E" else (self.height - self.border_width))
+        y1 = self.y + (0 if side != "S" else (self.height - self.border_width))
 
         # Bottom right corner
-        x2 = self.x + self.height + (0 if side != "W" else self.border_width)
-        y2 = self.y + self.height + (0 if side != "N" else self.border_width)
+        x2 = self.x + (self.height if side != "W" else self.border_width)
+        y2 = self.y + (self.height if side != "N" else self.border_width)
 
         self.borders.append(self.canvas.create_rectangle(
             x1, y1,
             x2, y2,
+            outline = "",
             fill = "#8FB044"))
-
-
 
 
     def flag(self):
@@ -400,8 +421,23 @@ class Tile(object):
         # Bring tile to front
         self.canvas.tag_raise(self.tile_id)
 
+        for flag in self.flag_part_ids:
+                self.canvas.tag_raise(flag)
+        for rect in self.borders:
+            self.canvas.tag_raise(rect)
+
         if self.type == "mine":
-            pass # Use SFX on mines
+            rainbow_colors = [
+                "#FF0000", # Red
+                "#FC6404", # Orange
+                "#FCC201", # Gold
+                "#029658", # DARK Green
+                "#2B6CC4", # Blue
+                "#1ABC9C", # Teal
+                "#6454AC", # Purple
+                "#FF1DCE" # Magenta
+            ]
+            self.canvas.itemconfig(self.tile_id, fill = r.choice(rainbow_colors))
         elif self.text_id != None:
             # Bring tile text to front
             self.canvas.tag_raise(self.text_id)
