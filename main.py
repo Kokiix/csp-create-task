@@ -167,7 +167,7 @@ class Minesweeper(tk.Frame):
 
 
         # Generate the minefield, a 2D array of Tile objects
-        self.minefield = [[Tile(self.canvas, self.tile_length, row, col) for col in range(self.board_tile_width)] for row in range(self.board_tile_height)]
+        self.minefield = [[Tile(self.canvas, self.tile_length, row, col) for col in range(self.board_tile_width)] for row in range(self.board_tile_height)] # MAKE IT SO CANVAS DOESN'T HAVE TO BE PASSED TO EVERY TILE
         self.tiles_cleared = 0
 
 
@@ -179,17 +179,21 @@ class Minesweeper(tk.Frame):
             tags = "first_click_setup")
 
 
+
+
     def _on_first_click(self, event):
         """
         Ensures player gets open space around first click
         """
 
-        # Figure out what tile first click corresponds to
+
+        # Figure out tile first click corresponds to
         first_tile_col = math.floor(event.x / self.tile_length)
         first_tile_row = math.floor(event.y / self.tile_length)
         first_tile = self.minefield[first_tile_row][first_tile_col]
 
-        # Distribute mines, making sure they aren't within 1 tile radius of cursor
+
+        # Distribute mines, ensuring not within 1 tile radius of cursor
         for mine_num in range(self.mine_number):
             mine_tile = first_tile
             while ((first_tile_col - 2 < mine_tile.col < first_tile_col + 2) and \
@@ -198,27 +202,35 @@ class Minesweeper(tk.Frame):
                 mine_tile = r.choice(r.choice(self.minefield))
             mine_tile.type = "mine"
 
-            # self.canvas.itemconfig(mine_tile.tile_id, fill = "#FFF012") # DEBUG
-
             # Update numbers for all tiles around mine
             for neighbor in self._get_neighbors(mine_tile):
                 if neighbor.type != "mine":
                     neighbor.mines_near += 1
                     neighbor.type = "near_mine"
 
+
+        # Begin the game
         self.canvas.delete(self.first_click_detector_id)
         self._clear_tiles(first_tile)
         self.start_time = time.time()
 
-    # Function is in Minesweeper class for access to the minefield
+    
+
+
     def _get_neighbors(self, tile):
-        # Find 8 surrounding tiles
+        """
+        Find the 8 tiles around a given tile
+        """
+
+
+        # Find tiles
         neighbor_coords = [
             [tile.row - 1, tile.col], [tile.row - 1, tile.col - 1], [tile.row - 1, tile.col + 1],
             [tile.row + 1, tile.col], [tile.row + 1, tile.col - 1], [tile.row + 1, tile.col + 1], 
             [tile.row, tile.col + 1], [tile.row, tile.col - 1]]
 
-        # Remove coords that fall outside of the window
+
+        # Remove ones that fall outside window
         final_tileset = []
         for coord_pair in neighbor_coords:
             if -1 not in coord_pair                        and \
@@ -226,14 +238,22 @@ class Minesweeper(tk.Frame):
                 self.board_tile_height != coord_pair[0]:
 
                 final_tileset.append(self.minefield[coord_pair[0]][coord_pair[1]])
-
         return final_tileset
 
 
+
+
     def _on_tile_click(self, event):
+        """
+        Simple click handler
+        """
+
+        
+        # Find clicked tile        
         tile_column = math.floor(event.x / self.tile_length)
         tile_row = math.floor(event.y / self.tile_length)
         tile = self.minefield[tile_row][tile_column]
+
 
         # Left click
         if event.num == 1 and not tile.has_flag:
@@ -243,6 +263,7 @@ class Minesweeper(tk.Frame):
             elif tile.type == "mine":
                 self._display_end_screen("loss")
         
+
         # Right click
         elif event.num == 3 and tile.type != "cleared":
             if tile.has_flag:
@@ -251,8 +272,14 @@ class Minesweeper(tk.Frame):
                 tile.flag()
 
 
-    # Recursively clears tiles until reaching "near_mine" tiles
+
+
     def _clear_tiles(self, tile):
+        """
+        Recursive algorithm to clear tiles; stops on numbered tiles
+        """
+
+
         # Tile type is saved before becoming "clear" type on tile.clear()
         tile_type = tile.type
         tile.clear()
@@ -299,6 +326,8 @@ class Minesweeper(tk.Frame):
             print("Final Score: %d seconds" % round(time.time() - self.start_time, 2))
 
 
+
+
     def _end_animation(self, img):
         time.sleep(0.75)
 
@@ -316,6 +345,7 @@ class Minesweeper(tk.Frame):
         for row in self.minefield:
             for tile in row:
                 self.canvas.itemconfig(tile.tile_id, tags = "", activefill = "")
+
 
         img_x = 0
         img_y = 0
@@ -344,6 +374,8 @@ class Minesweeper(tk.Frame):
 
         self.root.bind("<Key>", self._start_menu)
         self.root.bind("<Button>", self._start_menu)
+
+
 
 
 class Tile(object):
@@ -378,7 +410,8 @@ class Tile(object):
             fill = "#AAD751" if self.tone == "light" else "#A2D149",
             activefill = "#BFE17D" if self.tone == "light" else "#B9DD77",
             outline = "",
-            tags = ["clickable", self.type])
+            tags = ["clickable"],
+            )
 
 
     def clear(self):
