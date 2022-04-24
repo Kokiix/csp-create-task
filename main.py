@@ -89,7 +89,6 @@ class Minesweeper(tk.Frame):
         for button_number in range(3):
             button = tk.Button(
                 self.root,
-                bg = self.LIGHT_GREEN,
                 fg = "#696773",
                 bd = 0,
                 text = difficulties[button_number],
@@ -100,7 +99,8 @@ class Minesweeper(tk.Frame):
                 # Assign callback to each button along with id
                 command = lambda buttonid = button_number : self._on_menu_select(buttonid),
                 # Displays text and placeholder instead of just the placeholder
-                compound = "c"
+                compound = "c",
+                overrelief = tk.GROOVE
                 )
             button.pack()
 
@@ -265,7 +265,7 @@ class Minesweeper(tk.Frame):
                     self._clear_tiles(neighbor)
         else:
             for neighbor in self._get_neighbors(tile):
-                if neighbor.type == "mine" or neighbor.type == "near_mine" or neighbor.type == "blank":
+                if neighbor.type != "cleared":
                     xdiff = neighbor.col - tile.col
                     ydiff = neighbor.row - tile.row
                     direction = None
@@ -299,21 +299,46 @@ class Minesweeper(tk.Frame):
     def _end_animation(self, img):
         time.sleep(0.75)
 
-        # Medium/Hard difficulty
-        if self.mine_number == 40 or self.mine_number == 99:
-            img_x = 0
-            img_y = 0
-            for move in range(int(self.board_pixel_width / 12)):
-                self.canvas.move(img, img_x, img_y)
-                img_x += 0.5
-                time.sleep(0.005)
+        rainbow_colors = {
+            "#FF0000": "#7f0000", # Red
+            "#FC6404": "#7e3101", # Orange
+            "#FCC201": "#7e6100", # Gold
+            "#029658": "#004b2c", # DARK Green
+            "#2B6CC4": "#153662", # Blue
+            "#1ABC9C": "#0c5e4e", # Teal
+            "#6454AC": "#312956", # Purple
+            "#FF1DCE": "#8e006f" # Magenta
+        }
 
         for row in self.minefield:
             for tile in row:
-                self.canvas.itemconfig(tile.tile_id, tags = "")
-                tile.bring_to_front()
-                if self.mine_number == 10:
-                    time.sleep(0.005)
+                self.canvas.itemconfig(tile.tile_id, tags = "", activefill = "")
+        
+        img_x = 0
+        img_y = 0
+        x_shift = r.choice([-0.5, 0, 0.5])
+        y_shift = r.choice([-0.5, 0, 0.5]) if x_shift != 0 else r.choice([-0.5, 0.5])
+        for move in range(int(self.board_pixel_width / 17)):
+            self.canvas.move(img, img_x, img_y)
+            img_x += x_shift
+            img_y += y_shift
+            time.sleep(0.005)
+
+        time.sleep(0.5)
+
+        for row in self.minefield:
+            for tile in row:
+                pad = tile.height * 0.3
+                if tile.type == "mine":
+                    c = r.choice(list(rainbow_colors))
+                    tile.deflag()
+                    self.canvas.itemconfig(tile.tile_id, fill = c)
+                    self.canvas.create_oval(
+                        tile.x + pad, tile.y + pad,
+                        tile.x + tile.height - pad, tile.y + tile.height - pad,
+                        outline = "",
+                        fill = rainbow_colors[c])
+        
 
         self.root.bind("<Key>", self._start_menu)
         self.root.bind("<Button>", self._start_menu)
@@ -372,12 +397,12 @@ class Tile(object):
 
     def create_border(self, side):
         # Upper left corner
-        x1 = self.x + (0 if side != "E" else (self.height - self.border_width))
-        y1 = self.y + (0 if side != "S" else (self.height - self.border_width))
+        x1 = self.x + (0 if side != "E" else (self.height + self.border_width))
+        y1 = self.y + (0 if side != "S" else (self.height + self.border_width))
 
         # Bottom right corner
-        x2 = self.x + (self.height if side != "W" else self.border_width)
-        y2 = self.y + (self.height if side != "N" else self.border_width)
+        x2 = self.x + (self.height if side != "W" else -1 * self.border_width)
+        y2 = self.y + (self.height if side != "N" else -1 * self.border_width)
 
         self.borders.append(self.canvas.create_rectangle(
             x1, y1,
@@ -437,33 +462,6 @@ class Tile(object):
             "#424242", # Black
             "#9E9E9E"] # Silver
         return colors[self.mines_near - 1]
-
-
-    def bring_to_front(self):
-        # Bring tile to front
-        self.canvas.tag_raise(self.tile_id)
-
-        for flag in self.flag_part_ids:
-                self.canvas.tag_raise(flag)
-        for rect in self.borders:
-            self.canvas.tag_raise(rect)
-
-        if self.type == "mine":
-            rainbow_colors = [
-                "#FF0000", # Red
-                "#FC6404", # Orange
-                "#FCC201", # Gold
-                "#029658", # DARK Green
-                "#2B6CC4", # Blue
-                "#1ABC9C", # Teal
-                "#6454AC", # Purple
-                "#FF1DCE" # Magenta
-            ]
-            self.canvas.itemconfig(self.tile_id, fill = r.choice(rainbow_colors))
-        elif self.text_id != None:
-            # Bring tile text to front
-            self.canvas.tag_raise(self.text_id)
-
 
 if __name__ == "__main__":
     root = tk.Tk()
