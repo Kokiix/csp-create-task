@@ -12,87 +12,85 @@ from PIL import ImageTk, Image
 from playsound import playsound
 
 
+
+
 class Minesweeper(tk.Frame):
     def __init__(self, parent, board_pixel_height):
         """
-        Height is passed in, then width is based on that because most monitors are horizontal
+        Defines board sizes and game constants
         """
-
         self.root = parent
         tk.Frame.__init__(self, self.root)
 
-        # Miscallaneous variables
-        self.start_time = 0
-        self.DARK_GREEN = "#A2D149"
-        self.LIGHT_GREEN = "#AAD751"
 
-        # Set up board size settings; default size is medium
+        # Set up board size; default size is medium
         self.board_tile_width = 18
         self.board_tile_height = 14
         self.mine_number = 40
-        self.tile_side_length = board_pixel_height / self.board_tile_height
-        self.board_pixel_width = int(self.tile_side_length * self.board_tile_width)   
-        self.board_pixel_height = int(self.tile_side_length * self.board_tile_height) 
-        
-        # Setup canvas using those size settings
+        self.tile_length = board_pixel_height / self.board_tile_height
+        self.board_pixel_width = int(self.tile_length * self.board_tile_width)   
+        self.board_pixel_height = int(self.tile_length * self.board_tile_height)
         self.canvas = tk.Canvas(
             root, 
             width = self.board_pixel_width, height = self.board_pixel_height, 
             highlightthickness = 0, bg = "white")
-        self.canvas.tag_bind("first_click_setup", "<Button-1>", self._on_first_click)
+        
 
-        menu_img = Image.open(
-            "funnybunny_gray.jpg").resize(
-            (int(self.board_pixel_width * 0.525), int(self.board_pixel_height * 0.525)))
-
-        self.menu_screen_bg = ImageTk.PhotoImage(menu_img.rotate(25, fillcolor = "white", expand = 2))
-        self.menu_screen_bg_alt = ImageTk.PhotoImage(menu_img.rotate(-25, fillcolor = "white",  expand = 2))
-        self.menu_active = True
-
+        # Menu setup
+        self.buttons = []
+        self.button_font = ('Rockwell', int(self.board_pixel_height / 35))
+        self.button_placeholder = tk.PhotoImage(width = 1, height = 1) # Make label pos based off of pixels instead of font size
+        self.difficulties = ["Easy", "Medium", "Hard"]
+        self.button_padding = 0.2
+        self.button_y_offset = 0.25
 
         self.title_screen = ImageTk.PhotoImage(Image.open("title.png").resize(
             (int(self.board_pixel_width), int(self.board_pixel_height * 0.40))))
+
+        # Dancing mochi
+        bg_img = Image.open(
+            "funnybunny_gray.jpg").resize(
+            (int(self.board_pixel_width * 0.525), int(self.board_pixel_height * 0.525)))
+        self.mochi_pos_1 = ImageTk.PhotoImage(bg_img.rotate(25, fillcolor = "white", expand = 1))
+        self.mochi_pos_2 = ImageTk.PhotoImage(bg_img.rotate(-25, fillcolor = "white",  expand = 1))
+        self.menu_active = True
+
+
+        # Miscallaneous setup
+        self.start_time = 0
+        self.canvas.tag_bind("first_click_setup", "<Button-1>", self._on_first_click)
         self.lose_screen = ImageTk.PhotoImage(Image.open("funnybunny_red.jpg").resize((self.board_pixel_width, self.board_pixel_height)))
         self.win_screen = ImageTk.PhotoImage(Image.open("funnybunny_green.jpg").resize((self.board_pixel_width, self.board_pixel_height)))
 
-        # First time menu setup
-        # Placeholder is to allow button configuration based off of pixels instead of font size
-        self.button_placeholder = tk.PhotoImage(width = 1, height = 1)
-        self.buttons = []
-        self.menu_font = ('Rockwell', int(self.board_pixel_height / 35)) # TODO: ***IMPROVE MENU FONT***
-        self._start_menu(None) # Menu isn't being called by key/mouse callback so no event info
+        self._start_menu(None)        
+
+        
         
 
-    def _start_menu(self, event): # Event param not used; required to register as mouse callback
-        # Click is used after game over to get to the menu; this needs to be reset
+    def _start_menu(self, event):
+        """
+        Creates components for the main menu (title, dance, buttons)
+        """
+        self.canvas.delete("all")
+        self.menu_active = True
+
+
+        # Click is used after game over to get to the menu; this binding needs to be reset
         self.root.unbind("<Button>")
         self.canvas.tag_bind("clickable", "<Button>", self._on_tile_click)
 
-        # Setup menu background/title
-        self.menu_active = True
-        self.canvas.delete("all")
-
-        self.menu_bg = self.canvas.create_image(
-            self.board_pixel_width / 3, self.board_pixel_height / 1.55, 
-            anchor = "center", 
-            image = self.menu_screen_bg)
-
-        self.canvas.create_image(
-            0, 0, 
-            anchor = "nw", 
-            image = self.title_screen)
 
         # Setup difficulty buttons; board size can change between loops
         button_width = int(self.board_pixel_width / 4)
         button_height = int(self.board_pixel_height / 10)
-        difficulties = ["Easy", "Medium", "Hard"]
+
         for button_number in range(3):
             button = tk.Button(
                 self.root,
                 fg = "#696773",
-                bd = 0,
-                text = difficulties[button_number],
-                font = self.menu_font,
+                bd = 3,
+                text = self.difficulties[button_number],
+                font = self.button_font,
                 image = self.button_placeholder,
                 width = button_width,
                 height = button_height,
@@ -103,77 +101,82 @@ class Minesweeper(tk.Frame):
                 overrelief = tk.GROOVE
                 )
             button.pack()
-
-            button_padding = 0.2
-            button_y_offset = 0.25
-            button.place(relx = 0.85, rely = button_padding * (button_number + 1) + button_y_offset, anchor = "center")
+            button.place(relx = 0.85, rely = self.button_padding * (button_number + 1) + self.button_y_offset, anchor = "center")
             self.buttons.append(button)
 
-        threading.Thread(target = self._bun_dance, daemon = True).start()        
 
-    def _bun_dance(self):
+        # Create title, start mochi dance
+        displayed_bg = self.canvas.create_image(
+                    self.board_pixel_width / 3, self.board_pixel_height / 1.55, 
+                    anchor = "center", 
+                    image = self.mochi_pos_1)
+        self.canvas.create_image(
+            0, 0, 
+            anchor = "nw", 
+            image = self.title_screen)
+        threading.Thread(target = self._bun_dance, args = (displayed_bg,), daemon = True).start()  
+              
+
+
+
+    def _bun_dance(self, bg):
+        """
+        MOCHI DANCE MOCHI DANCE
+        """
         while self.menu_active == True:
             time.sleep(0.75)
-            self.canvas.itemconfig(self.menu_bg, image = self.menu_screen_bg_alt)
+            self.canvas.itemconfig(bg, image = self.mochi_pos_2)
             time.sleep(0.75)
-            self.canvas.itemconfig(self.menu_bg, image = self.menu_screen_bg)
+            self.canvas.itemconfig(bg, image = self.mochi_pos_1)
+
+
 
 
     def _on_menu_select(self, buttonid):
+        """
+        Listens for button press and starts the game
+        """
+
         # Clear start menu
         self.menu_active = False
         self.canvas.delete("all")
         for button in self.buttons:
             button.destroy()
 
-        # Choose difficulty based on id of button pressed
-        if buttonid == 0: # easy
+
+        # Buttonid tells which is pressed
+        if buttonid == 0: # Easy
             self.board_tile_width = 10
             self.board_tile_height = 8
             self.mine_number = 10
-        elif buttonid == 1: # medium
+        elif buttonid == 1: # Medium
             self.board_tile_width = 18
             self.board_tile_height = 14
             self.mine_number = 40
-        elif buttonid == 2: # hard
+        elif buttonid == 2: # Hard
             self.board_tile_width = 24
             self.board_tile_height = 20
             self.mine_number = 99
 
+
         # Sizes need to change based on the new amount of tiles
-        self.tile_side_length = self.board_pixel_height / self.board_tile_height
-        self.board_pixel_width = self.tile_side_length * self.board_tile_width
+        self.tile_length = self.board_pixel_height / self.board_tile_height
+        self.board_pixel_width = self.tile_length * self.board_tile_width
         self.canvas.configure(width = self.board_pixel_width)
         self.root.geometry("%dx%d" % (self.board_pixel_width, self.board_pixel_height))
-        self._start()
 
 
-    def _start(self):
+        # Generate the minefield, a 2D array of Tile objects
+        self.minefield = [[Tile(self.canvas, self.tile_length, row, col) for col in range(self.board_tile_width)] for row in range(self.board_tile_height)]
         self.tiles_cleared = 0
 
-        self.minefield = [[self._create_tile(row, col) for col in range(self.board_tile_width)] for row in range(self.board_tile_height)]
-        # Creates invisible rectangle over whole window blocking tile click;
-        # canvas widget constructors return id used to manipulate the widget
+
+        # Creates invisible rectangle to intercept first click
         self.first_click_detector_id = self.canvas.create_rectangle(
             0, 0, self.board_pixel_width, self.board_pixel_height,
             fill = "",
             outline = "",
             tags = "first_click_setup")
-
-
-    def _create_tile(self, row, col):
-        # Offset color every row
-        color1 = self.LIGHT_GREEN if row % 2 == 0 else self.DARK_GREEN
-        color2 = self.LIGHT_GREEN if color1 == self.DARK_GREEN else self.DARK_GREEN
-        # Swap color every col
-        fill_color = color1 if col % 2 == 0 else color2
-
-        return Tile(
-            self.canvas, 
-            self.tile_side_length, 
-            fill_color,
-            "blank",
-            row, col)
 
 
     def _on_first_click(self, event):
@@ -182,8 +185,8 @@ class Minesweeper(tk.Frame):
         """
 
         # Figure out what tile first click corresponds to
-        first_tile_col = math.floor(event.x / self.tile_side_length)
-        first_tile_row = math.floor(event.y / self.tile_side_length)
+        first_tile_col = math.floor(event.x / self.tile_length)
+        first_tile_row = math.floor(event.y / self.tile_length)
         first_tile = self.minefield[first_tile_row][first_tile_col]
 
         # Distribute mines, making sure they aren't within 1 tile radius of cursor
@@ -228,8 +231,8 @@ class Minesweeper(tk.Frame):
 
 
     def _on_tile_click(self, event):
-        tile_column = math.floor(event.x / self.tile_side_length)
-        tile_row = math.floor(event.y / self.tile_side_length)
+        tile_column = math.floor(event.x / self.tile_length)
+        tile_row = math.floor(event.y / self.tile_length)
         tile = self.minefield[tile_row][tile_column]
 
         # Left click
@@ -313,29 +316,28 @@ class Minesweeper(tk.Frame):
         for row in self.minefield:
             for tile in row:
                 self.canvas.itemconfig(tile.tile_id, tags = "", activefill = "")
-        
+
         img_x = 0
         img_y = 0
         x_shift = r.choice([-0.5, 0, 0.5])
         y_shift = r.choice([-0.5, 0, 0.5]) if x_shift != 0 else r.choice([-0.5, 0.5])
-        for move in range(int(self.board_pixel_width / 17)):
+        for move in range(int(self.board_pixel_width / 15)):
             self.canvas.move(img, img_x, img_y)
             img_x += x_shift
             img_y += y_shift
             time.sleep(0.005)
 
-        time.sleep(0.5)
 
         for row in self.minefield:
             for tile in row:
-                pad = tile.height * 0.3
+                pad = tile.length * 0.3
                 if tile.type == "mine":
                     c = r.choice(list(rainbow_colors))
                     tile.deflag()
                     self.canvas.itemconfig(tile.tile_id, fill = c)
                     self.canvas.create_oval(
                         tile.x + pad, tile.y + pad,
-                        tile.x + tile.height - pad, tile.y + tile.height - pad,
+                        tile.x + tile.length - pad, tile.y + tile.length - pad,
                         outline = "",
                         fill = rainbow_colors[c])
         
@@ -345,50 +347,50 @@ class Minesweeper(tk.Frame):
 
 
 class Tile(object):
-    def __init__(self, canvas, height, color, tile_type, row, col):
+    def __init__(self, canvas, length, row, col):
         self.LIGHT_BROWN = "#E5C29F"
         self.DARK_BROWN = "#D7B899"
-
         self.canvas = canvas
+
         self.row = row
         self.col = col
-        self.height = height
-        self.x = self.col * self.height
-        self.y = self.row * self.height
+        self.length = length
+        self.x = self.col * self.length
+        self.y = self.row * self.length
 
-        self.type = tile_type
+        self.type = "blank"
         self.mines_near = 0
-        self.font = ('Helvetica', int(height / 2), 'bold')
-        self.color = "light" if color == "#AAD751" else "dark" # Color is matching to light green here
-        hover_color = "#BFE17D" if color == "light" else "#B9DD77" # Color is matching to light green here
+        self.font = ('Helvetica', int(self.length / 2), 'bold')
+
+        self.tone = "light" if (self.row + self.col) % 2 == 0 else "dark"
 
         self.has_flag = False
         # Ids for each part of the flag (flag, base, cloth)
         self.flag_part_ids = []
-        self.border_width = self.height * 0.1
+        self.border_width = self.length * 0.1
         self.borders = []
 
         # ID is used to manipulate widget later
         self.text_id = None
         self.tile_id = self.canvas.create_rectangle(
             self.x, self.y,
-            self.x + self.height, self.y + self.height,
-            fill = color,
-            activefill = hover_color,
+            self.x + self.length, self.y + self.length,
+            fill = "#AAD751" if self.tone == "light" else "#A2D149",
+            activefill = "#BFE17D" if self.tone == "light" else "#B9DD77",
             outline = "",
             tags = ["clickable", self.type])
 
 
     def clear(self):
         self.canvas.itemconfig(self.tile_id, 
-            fill = self.LIGHT_BROWN if self.color == "light" else self.DARK_BROWN,
+            fill = self.LIGHT_BROWN if self.tone == "light" else self.DARK_BROWN,
             activefill = "")
         for rect in self.borders:
             self.canvas.delete(rect)
         self.borders = []
         if self.type == "near_mine":
             self.text_id = self.canvas.create_text(
-                self.x + self.height / 2, self.y + self.height / 2, 
+                self.x + self.length / 2, self.y + self.length / 2, 
                 text = str(self.mines_near),
                 fill = self._get_number_color(),
                 font = self.font)
@@ -397,12 +399,12 @@ class Tile(object):
 
     def create_border(self, side):
         # Upper left corner
-        x1 = self.x + (0 if side != "E" else (self.height + self.border_width))
-        y1 = self.y + (0 if side != "S" else (self.height + self.border_width))
+        x1 = self.x + (0 if side != "E" else (self.length + self.border_width))
+        y1 = self.y + (0 if side != "S" else (self.length + self.border_width))
 
         # Bottom right corner
-        x2 = self.x + (self.height if side != "W" else -1 * self.border_width)
-        y2 = self.y + (self.height if side != "N" else -1 * self.border_width)
+        x2 = self.x + (self.length if side != "W" else -1 * self.border_width)
+        y2 = self.y + (self.length if side != "N" else -1 * self.border_width)
 
         self.borders.append(self.canvas.create_rectangle(
             x1, y1,
@@ -412,18 +414,18 @@ class Tile(object):
 
 
     def flag(self):
-        pole_x = self.x + self.height * 0.35
-        pole_y = self.y + self.height * 0.20
-        pole_width = self.height * 0.08
-        pole_height = self.height * 0.55
+        pole_x = self.x + self.length * 0.35
+        pole_y = self.y + self.length * 0.20
+        pole_width = self.length * 0.08
+        pole_height = self.length * 0.55
         flag_pole = self.canvas.create_rectangle(
             pole_x, pole_y,
             pole_x + pole_width, pole_y + pole_height,
             fill = "red", outline = "")
 
-        cloth_tip_x = pole_x + self.height * 0.4
-        cloth_tip_y = pole_y + self.height * 0.1
-        cloth_base_y = pole_y + self.height * 0.25
+        cloth_tip_x = pole_x + self.length * 0.4
+        cloth_tip_y = pole_y + self.length * 0.1
+        cloth_base_y = pole_y + self.length * 0.25
         cloth_points = [pole_x + pole_width, pole_y, 
         cloth_tip_x, cloth_tip_y, 
         pole_x + pole_width, cloth_base_y]
