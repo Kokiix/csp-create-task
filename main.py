@@ -47,6 +47,7 @@ class Minesweeper(tk.Frame):
         self.title_screen = ImageTk.PhotoImage(Image.open("title.png").resize(
             (int(self.board_pixel_width), int(self.board_pixel_height * 0.40))))
 
+
         # Dancing mochi
         bg_img = Image.open(
             "funnybunny_gray.jpg").resize(
@@ -61,6 +62,16 @@ class Minesweeper(tk.Frame):
         self.canvas.tag_bind("first_click_setup", "<Button-1>", self._on_first_click)
         self.lose_screen = ImageTk.PhotoImage(Image.open("funnybunny_red.jpg").resize((self.board_pixel_width, self.board_pixel_height)))
         self.win_screen = ImageTk.PhotoImage(Image.open("funnybunny_green.jpg").resize((self.board_pixel_width, self.board_pixel_height)))
+        self.rainbow_colors = {
+            "#FF0000": "#7f0000", # Red
+            "#FC6404": "#7e3101", # Orange
+            "#FCC201": "#7e6100", # Gold
+            "#029658": "#004b2c", # DARK Green
+            "#2B6CC4": "#153662", # Blue
+            "#1ABC9C": "#0c5e4e", # Teal
+            "#6454AC": "#312956", # Purple
+            "#FF1DCE": "#8e006f" # Magenta
+        }
 
         self._start_menu(None)        
 
@@ -256,16 +267,16 @@ class Minesweeper(tk.Frame):
 
 
         # Left click
-        if event.num == 1 and not tile.has_flag:
-            if tile.type == "blank" or tile.type == "near_mine":
+        if event.num == 1 and tile.state == tk.NORMAL and not tile.has_flag:
+            if tile.type != "mine":
                 self._clear_tiles(tile)
                 self.canvas.pack() # Reload visual changes
-            elif tile.type == "mine":
+            else:
                 self._display_end_screen("loss")
         
 
         # Right click
-        elif event.num == 3 and tile.type != "cleared":
+        elif event.num == 3 and tile.state == tk.NORMAL:
             if tile.has_flag:
                 tile.deflag()
             else:
@@ -280,22 +291,23 @@ class Minesweeper(tk.Frame):
         """
 
 
-        # Tile type is saved before becoming "clear" type on tile.clear()
-        tile_type = tile.type
+        # Update tiles
         tile.clear()
-
         self.tiles_cleared += 1
         if self.tiles_cleared == self.board_tile_height * self.board_tile_width - self.mine_number:
             self._display_end_screen("win")
             return
 
-        if tile_type != "near_mine":
+
+        # Spread to all nearby tiles if current isn't numbered
+        # if current numbered add borders
+        if tile.type != "near_mine":
             for neighbor in self._get_neighbors(tile):
-                if neighbor.has_flag == False and (neighbor.type == "blank" or neighbor.type == "near_mine"):
+                if neighbor.state == tk.NORMAL and not neighbor.has_flag:
                     self._clear_tiles(neighbor)
         else:
             for neighbor in self._get_neighbors(tile):
-                if neighbor.type != "cleared":
+                if neighbor.state == tk.NORMAL:
                     xdiff = neighbor.col - tile.col
                     ydiff = neighbor.row - tile.row
                     direction = None
@@ -313,14 +325,21 @@ class Minesweeper(tk.Frame):
                         neighbor.create_border(direction)
 
 
+
+
     def _display_end_screen(self, result):
+        """
+        Start the threads for end audio and animation
+        """
+
+
         end_screen = self.canvas.create_image(
             self.board_pixel_width / 2, self.board_pixel_height / 2, 
             anchor = "center", 
             image = self.lose_screen if result == "loss" else self.win_screen)
-
         threading.Thread(target = playsound, args = ("boing.wav",), daemon = True).start()
         threading.Thread(target = self._end_animation, args = (end_screen,), daemon = True).start()
+
 
         if result == "win":
             print("Final Score: %d seconds" % round(time.time() - self.start_time, 2))
@@ -329,24 +348,19 @@ class Minesweeper(tk.Frame):
 
 
     def _end_animation(self, img):
+        """
+        Mochi appears & slides off the screen; mines revealed
+        """
         time.sleep(0.75)
 
-        rainbow_colors = {
-            "#FF0000": "#7f0000", # Red
-            "#FC6404": "#7e3101", # Orange
-            "#FCC201": "#7e6100", # Gold
-            "#029658": "#004b2c", # DARK Green
-            "#2B6CC4": "#153662", # Blue
-            "#1ABC9C": "#0c5e4e", # Teal
-            "#6454AC": "#312956", # Purple
-            "#FF1DCE": "#8e006f" # Magenta
-        }
 
+        # Disable input
         for row in self.minefield:
             for tile in row:
                 self.canvas.itemconfig(tile.tile_id, tags = "", activefill = "")
 
 
+        # Image slides off screen in random direction
         img_x = 0
         img_y = 0
         x_shift = r.choice([-0.5, 0, 0.5])
@@ -358,52 +372,77 @@ class Minesweeper(tk.Frame):
             time.sleep(0.005)
 
 
+        # Rainbow color mines
         for row in self.minefield:
             for tile in row:
                 pad = tile.length * 0.3
                 if tile.type == "mine":
-                    c = r.choice(list(rainbow_colors))
                     tile.deflag()
+                    c = r.choice(list(self.rainbow_colors))
                     self.canvas.itemconfig(tile.tile_id, fill = c)
                     self.canvas.create_oval(
                         tile.x + pad, tile.y + pad,
                         tile.x + tile.length - pad, tile.y + tile.length - pad,
                         outline = "",
-                        fill = rainbow_colors[c])
+                        fill = self.rainbow_colors[c])
         
 
-        self.root.bind("<Key>", self._start_menu)
+        # Get back to main menu
         self.root.bind("<Button>", self._start_menu)
 
 
 
 
 class Tile(object):
-    def __init__(self, canvas, length, row, col):
-        self.LIGHT_BROWN = "#E5C29F"
-        self.DARK_BROWN = "#D7B899"
-        self.canvas = canvas
 
+
+
+
+    number_colors = [
+            "#1976D2", # Blue
+            "#388E3C", # Green
+            "#D32F2F", # Red
+            "#7B1FA2", # Purple
+            "#FF8F00", # Gold
+            "#0097A7", # Aqua
+            "#424242", # Black
+            "#9E9E9E"] # Silver
+
+
+
+
+    def __init__(self, canvas, length, row, col):
+        self.canvas = canvas
         self.row = row
         self.col = col
         self.length = length
         self.x = self.col * self.length
         self.y = self.row * self.length
 
+
+        # Type can be blank, near_mine, or mine; type never changes
+        # State is if a tile is "covered" or not
         self.type = "blank"
+        self.state = tk.NORMAL
+
+
+        # Miscallaneous
+        self.tone = "light" if (self.row + self.col) % 2 == 0 else "dark"
         self.mines_near = 0
+        self.text_id = None
+
+
+        # Tile components
         self.font = ('Helvetica', int(self.length / 2), 'bold')
 
-        self.tone = "light" if (self.row + self.col) % 2 == 0 else "dark"
-
+        self.flag_parts = []
         self.has_flag = False
-        # Ids for each part of the flag (flag, base, cloth)
-        self.flag_part_ids = []
+
         self.border_width = self.length * 0.1
         self.borders = []
 
-        # ID is used to manipulate widget later
-        self.text_id = None
+        
+        # Build final canvas object
         self.tile_id = self.canvas.create_rectangle(
             self.x, self.y,
             self.x + self.length, self.y + self.length,
@@ -411,33 +450,51 @@ class Tile(object):
             activefill = "#BFE17D" if self.tone == "light" else "#B9DD77",
             outline = "",
             tags = ["clickable"],
-            )
+        )
+
+
 
 
     def clear(self):
-        self.canvas.itemconfig(self.tile_id, 
-            fill = self.LIGHT_BROWN if self.tone == "light" else self.DARK_BROWN,
-            activefill = "")
-        for rect in self.borders:
-            self.canvas.delete(rect)
+        """
+        Updates tile color, state, and borders on clear
+        """
+
+
+        # Color from green to brown
+        self.canvas.itemconfig(self.tile_id, activefill = "", fill = "#E5C29F" if self.tone == "light" else "#D7B899")
+
+
+        # Clear borders
+        for border in self.borders:
+            self.canvas.delete(border)
         self.borders = []
+
+
+        # Create text for tiles near mines
         if self.type == "near_mine":
             self.text_id = self.canvas.create_text(
                 self.x + self.length / 2, self.y + self.length / 2, 
                 text = str(self.mines_near),
-                fill = self._get_number_color(),
+                fill = Tile.number_colors[self.mines_near - 1],
                 font = self.font)
-        self.type = "cleared"
+
+        self.state = tk.DISABLED
+
+
 
 
     def create_border(self, side):
-        # Upper left corner
-        x1 = self.x + (0 if side != "E" else (self.length + self.border_width))
-        y1 = self.y + (0 if side != "S" else (self.length + self.border_width))
+        """
+        Adds tile border on given side
+        """
 
-        # Bottom right corner
-        x2 = self.x + (self.length if side != "W" else -1 * self.border_width)
-        y2 = self.y + (self.length if side != "N" else -1 * self.border_width)
+        # how do i explain this
+        x1 = self.x + ((self.length + self.border_width) if side == "E" else 0)
+        y1 = self.y + ((self.length + self.border_width) if side == "S" else 0)
+
+        x2 = self.x - (self.border_width if side == "W" else -1 * self.length)
+        y2 = self.y - (self.border_width if side == "N" else -1 * self.length)
 
         self.borders.append(self.canvas.create_rectangle(
             x1, y1,
@@ -446,7 +503,16 @@ class Tile(object):
             fill = "#8FB044"))
 
 
+
+
     def flag(self):
+        """
+        Creates a flag for the tile
+        The numbers are very fine tuned
+        """
+
+
+        # Flagpole
         pole_x = self.x + self.length * 0.35
         pole_y = self.y + self.length * 0.20
         pole_width = self.length * 0.08
@@ -456,6 +522,8 @@ class Tile(object):
             pole_x + pole_width, pole_y + pole_height,
             fill = "red", outline = "")
 
+
+        # Flag cloth
         cloth_tip_x = pole_x + self.length * 0.4
         cloth_tip_y = pole_y + self.length * 0.1
         cloth_base_y = pole_y + self.length * 0.25
@@ -466,6 +534,8 @@ class Tile(object):
             cloth_points,
             fill = "red", outline = "")
 
+
+        # Flag base
         base_x_offset = pole_width * 0.5
         base_y_offset = pole_height * 0.3
         flag_base = self.canvas.create_arc(
@@ -473,49 +543,47 @@ class Tile(object):
             pole_x + pole_width + base_x_offset, pole_y + pole_height + base_y_offset,
             extent = 180, fill = "red", outline = "")
 
-        self.flag_part_ids = [flag_pole, flag_cloth, flag_base]
-        for flag_part in self.flag_part_ids:
+
+        # Build flag and stop it from blocking click
+        self.flag_parts = [flag_pole, flag_cloth, flag_base]
+        for flag_part in self.flag_parts:
             self.canvas.itemconfig(flag_part, tags = ["clickable"])
         self.has_flag = True
 
 
+
+
     def deflag(self):
-        for flag_part in self.flag_part_ids:
+        """
+        Remove flag
+        """
+
+
+        for flag_part in self.flag_parts:
             self.canvas.delete(flag_part)
-        self.flag_part_ids.clear()
+        self.flag_parts.clear()
         self.has_flag = False
 
 
-    def _get_number_color(self):
-        colors = [
-            "#1976D2", # Blue
-            "#388E3C", # Green
-            "#D32F2F", # Red
-            "#7B1FA2", # Purple
-            "#FF8F00", # Gold
-            "#0097A7", # Aqua
-            "#424242", # Black
-            "#9E9E9E"] # Silver
-        return colors[self.mines_near - 1]
+
 
 if __name__ == "__main__":
     root = tk.Tk()
 
-    # Game/window settings
 
-    screen_height = root.winfo_screenheight() - 100 # 100px accounts for window title/taskbar
-
-    minesweeper = Minesweeper(root, screen_height)
+    # Start the game using screen height (100 is taskbar height)
+    minesweeper = Minesweeper(root, root.winfo_screenheight() - 100)
     minesweeper.pack(fill="both", expand=True)
     minesweeper.canvas.pack()
 
+
+    # Center/config the window and begin the game
     width = minesweeper.board_pixel_width
     height = minesweeper.board_pixel_height
-    # Center the window
     window_x = root.winfo_screenwidth() / 2 - (width / 2)
     window_y = 10
+
     root.geometry('%dx%d+%d+%d' % (width, height, window_x, window_y))
     root.title("Minesweeper!")
     root.resizable(False, False)
-
     root.mainloop()
