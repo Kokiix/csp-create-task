@@ -62,7 +62,7 @@ class Minesweeper(tk.Frame):
         self.canvas.tag_bind("first_click_setup", "<Button-1>", self._on_first_click)
         self.lose_screen = ImageTk.PhotoImage(Image.open("funnybunny_red.jpg").resize((self.board_pixel_width, self.board_pixel_height)))
         self.win_screen = ImageTk.PhotoImage(Image.open("funnybunny_green.jpg").resize((self.board_pixel_width, self.board_pixel_height)))
-        self.rainbow_colors = {
+        self.mine_reveal_colors = {
             "#FF0000": "#7f0000", # Red
             "#FC6404": "#7e3101", # Orange
             "#FCC201": "#7e6100", # Gold
@@ -84,6 +84,7 @@ class Minesweeper(tk.Frame):
         """
         self.canvas.delete("all")
         self.menu_active = True
+        self.root.title("Minesweeper!")
 
 
         # Click is used after game over to get to the menu; this binding needs to be reset
@@ -178,7 +179,7 @@ class Minesweeper(tk.Frame):
 
 
         # Generate the minefield, a 2D array of Tile objects
-        self.minefield = [[Tile(self.canvas, self.tile_length, row, col) for col in range(self.board_tile_width)] for row in range(self.board_tile_height)] # MAKE IT SO CANVAS DOESN'T HAVE TO BE PASSED TO EVERY TILE
+        self.minefield = [[Tile(self.canvas, self.tile_length, row, col) for col in range(self.board_tile_width)] for row in range(self.board_tile_height)]
         self.tiles_cleared = 0
 
 
@@ -225,7 +226,22 @@ class Minesweeper(tk.Frame):
         self._clear_tiles(first_tile)
         self.start_time = time.time()
 
-    
+
+        # Add timer to title
+        self.game_running = True
+        threading.Thread(target = self._timer, daemon = True).start()
+
+
+
+
+    def _timer(self):
+        counter = 1
+        while self.game_running:
+            self.root.title("%d seconds" % counter)
+            counter += 1
+            time.sleep(1)
+
+
 
 
     def _get_neighbors(self, tile):
@@ -294,10 +310,7 @@ class Minesweeper(tk.Frame):
         # Update tiles
         tile.clear()
         self.tiles_cleared += 1
-        if self.tiles_cleared == self.board_tile_height * self.board_tile_width - self.mine_number:
-            self._display_end_screen("win")
-            return
-
+        
 
         # Spread to all nearby tiles if current isn't numbered
         # if current numbered add borders
@@ -325,6 +338,11 @@ class Minesweeper(tk.Frame):
                         neighbor.create_border(direction)
 
 
+        # Check for win
+        if self.tiles_cleared == self.board_tile_height * self.board_tile_width - self.mine_number:
+            self._display_end_screen("win")
+
+
 
 
     def _display_end_screen(self, result):
@@ -340,9 +358,11 @@ class Minesweeper(tk.Frame):
         threading.Thread(target = playsound, args = ("boing.wav",), daemon = True).start()
         threading.Thread(target = self._end_animation, args = (end_screen,), daemon = True).start()
 
-
+        self.game_running = False
         if result == "win":
-            print("Final Score: %d seconds" % round(time.time() - self.start_time, 2))
+            score = "Final Score: %d seconds" % round(time.time() - self.start_time, 2)
+            self.root.title(score)
+            print(score)
 
 
 
@@ -378,13 +398,13 @@ class Minesweeper(tk.Frame):
                 pad = tile.length * 0.3
                 if tile.type == "mine":
                     tile.deflag()
-                    c = r.choice(list(self.rainbow_colors))
+                    c = r.choice(list(self.mine_reveal_colors))
                     self.canvas.itemconfig(tile.tile_id, fill = c)
                     self.canvas.create_oval(
                         tile.x + pad, tile.y + pad,
                         tile.x + tile.length - pad, tile.y + tile.length - pad,
                         outline = "",
-                        fill = self.rainbow_colors[c])
+                        fill = self.mine_reveal_colors[c])
         
 
         # Get back to main menu
@@ -489,7 +509,7 @@ class Tile(object):
         Adds tile border on given side
         """
 
-        # how do i explain this
+
         x1 = self.x + ((self.length + self.border_width) if side == "E" else 0)
         y1 = self.y + ((self.length + self.border_width) if side == "S" else 0)
 
@@ -555,7 +575,7 @@ class Tile(object):
 
     def deflag(self):
         """
-        Remove flag
+        Remove flag from tile
         """
 
 
