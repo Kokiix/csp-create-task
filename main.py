@@ -15,7 +15,7 @@ from playsound import playsound
 
 
 # Menus are based on my rabbit Mochi
-# https://imgur.com/a/zQRdfwE
+# https://imgur.com/a/Q2HSvse
 # I have another named Dumpling too :D
 
 
